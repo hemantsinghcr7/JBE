@@ -578,8 +578,7 @@ h1, h2, h3, h4 {
   font-family: var(--font-mono); font-size: 13px; color: var(--blue);
   background: var(--bg); border: 1px solid var(--line); padding: 6px 12px; border-radius: 4px;
 }
-.map-ph { margin-top: 22px; height: 150px; border: 1px solid var(--line); border-radius: var(--radius); }
-
+.map-ph { margin-top: 22px; height: 260px; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
 /* Form */
 .form-card {
   border: 1px solid var(--line); background: #fff; border-radius: var(--radius);
