@@ -109,15 +109,15 @@ Cards:      1px solid border, no radius
 ## 5. Branch Strategy
 
 ```
-master          → production (auto-deploys to Vercel)
+main            → production (auto-deploys to Vercel)
 feature/<name>  → new features, e.g. feature/rate-estimator
 fix/<name>      → bug fixes, e.g. fix/mobile-nav
 setup/<name>    → infrastructure/config, e.g. setup/project-foundation
 ```
 
 **Rules:**
-- Never push directly to `master` unless it's a trivial copy/config change
-- Every feature gets a branch → PR → merge to master
+- Never push directly to `main` unless it's a trivial copy/config change
+- Every feature gets a branch → PR → merge to main
 - Branch names are lowercase, hyphenated
 
 ---
