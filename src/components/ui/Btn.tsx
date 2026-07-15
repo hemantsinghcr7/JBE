@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-type BtnVariant = "default" | "red" | "white";
+type BtnVariant = "default" | "amber" | "dark";
 type BtnSize = "md" | "sm";
 
 interface BtnProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
@@ -12,18 +12,11 @@ interface BtnProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
 
 const variantClass: Record<BtnVariant, string> = {
   default: "",
-  red: "btn--red",
-  white: "btn--w",
+  amber:   "btn--amber",
+  dark:    "btn--dark",
 };
 
-export function Btn({
-  variant = "default",
-  size = "md",
-  href,
-  children,
-  className,
-  ...props
-}: BtnProps) {
+export function Btn({ variant = "default", size = "md", href, children, className, ...props }: BtnProps) {
   return (
     <a
       href={href}

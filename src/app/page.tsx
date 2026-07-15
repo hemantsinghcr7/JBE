@@ -1,4 +1,3 @@
-import { TopStrip } from "@/components/layout/TopStrip";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { ScrollExtras } from "@/components/layout/ScrollExtras";
@@ -17,7 +16,6 @@ export default function Home() {
       <a className="skip" href="#main">Skip to content</a>
       <ScrollExtras />
       <div className="grain" aria-hidden="true" />
-      <TopStrip />
       <Navbar />
       <main id="main">
         <Hero />

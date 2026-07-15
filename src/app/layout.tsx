@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { Archivo, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
+import { Barlow_Condensed, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { company } from "@/data/content";
 
-const archivo = Archivo({
+const barlowCondensed = Barlow_Condensed({
   subsets: ["latin"],
-  weight: ["500", "600", "700", "800", "900"],
+  weight: ["700", "900"],
   variable: "--f-display",
   display: "swap",
 });
@@ -25,7 +25,7 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const viewport = {
-  themeColor: "#0C3C8F",
+  themeColor: "#111111",
 };
 
 export const metadata: Metadata = {
@@ -63,7 +63,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${archivo.variable} ${ibmPlexSans.variable} ${ibmPlexMono.variable}`}
+      className={`${barlowCondensed.variable} ${ibmPlexSans.variable} ${ibmPlexMono.variable}`}
     >
       <head>
         <script

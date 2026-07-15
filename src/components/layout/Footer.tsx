@@ -1,24 +1,14 @@
 import { company, navLinks } from "@/data/content";
-import { LogoTile } from "@/components/ui/LogoTile";
 
 export function Footer() {
   return (
     <footer className="footer">
-      <span className="watermark" aria-hidden="true">
-        JBE
-      </span>
+      <span className="foot-watermark" aria-hidden="true">JBE</span>
       <div className="wrap">
         <div className="foot-grid">
           <div className="foot-brand">
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <LogoTile />
-              <span className="brand-name" style={{ color: "#fff" }}>
-                Jai Bhawani
-                <br />
-                Enterprises
-                <small>{company.tagline}</small>
-              </span>
-            </div>
+            <div className="foot-brand-name">JBE</div>
+            <div className="foot-brand-sub">Jai Bhawani Enterprises</div>
             <p>
               Aluminium, copper and brass scrap — bought, processed and supplied
               from MIDC Ambad, Nashik, since {company.founded}.
@@ -40,30 +30,24 @@ export function Footer() {
             <h4>Reach us</h4>
             <ul>
               <li>
-                <a href={`tel:${company.phoneTel}`} className="mono">
-                  {company.phone}
-                </a>
+                <a href={`tel:${company.phoneTel}`} className="mono">{company.phone}</a>
               </li>
-              <li>
-                <span className="mono">GST {company.gst}</span>
-              </li>
+              <li className="mono">GST {company.gst}</li>
               <li>
                 {company.address.line1},<br />
-                {company.address.city} {company.address.pin},{" "}
+                {company.address.city} {company.address.pin},<br />
                 {company.address.state}
               </li>
             </ul>
           </div>
         </div>
 
-        <div className="barcode" aria-hidden="true" />
+        <div className="foot-divider" />
 
         <div className="legal">
-          <span>
-            © <span id="foot-year">{new Date().getFullYear()}</span>{" "}
-            JAI BHAWANI ENTERPRISES
-          </span>
-          <span>NASHIK · MAHARASHTRA · INDIA</span>
+          <span>© {new Date().getFullYear()} Jai Bhawani Enterprises</span>
+          <span>Nashik · Maharashtra · India</span>
+          <span>Est. {company.founded}</span>
         </div>
       </div>
     </footer>

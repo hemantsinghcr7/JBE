@@ -2,8 +2,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { company, navLinks } from "@/data/content";
 import { useScrollSpy } from "@/hooks/useScrollSpy";
-import { LogoTile } from "@/components/ui/LogoTile";
-import { Btn } from "@/components/ui/Btn";
 import { MobileDrawer } from "./MobileDrawer";
 
 const SPY_IDS = ["home", "about", "materials", "process", "contact"];
@@ -20,9 +18,7 @@ export function Navbar() {
   }, []);
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setDrawerOpen(false);
-    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setDrawerOpen(false); };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, []);
@@ -38,17 +34,10 @@ export function Navbar() {
     <>
       <nav className={`nav ${stuck ? "is-stuck" : ""}`} aria-label="Main">
         <div className="wrap">
-          <a
-            className="brand"
-            href="#home"
-            aria-label={`${company.name} — home`}
-            style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none" }}
-          >
-            <LogoTile />
-            <span className="brand-name">
-              Jai Bhawani
-              <br />
-              Enterprises
+          <a className="brand" href="#home" aria-label={`${company.name} — home`}>
+            <span className="brand-mark">JBE</span>
+            <span className="brand-text">
+              <strong>Jai Bhawani Enterprises</strong>
               <small>{company.tagline}</small>
             </span>
           </a>
@@ -56,19 +45,20 @@ export function Navbar() {
           <ul className="nav-links">
             {navLinks.map((link) => (
               <li key={link.href}>
-                <a
-                  href={link.href}
-                  className={active === link.href.slice(1) ? "active" : ""}
-                >
+                <a href={link.href} className={active === link.href.slice(1) ? "active" : ""}>
                   {link.label}
                 </a>
               </li>
             ))}
           </ul>
 
-          <Btn variant="red" size="sm" href="#contact" className="nav-cta">
-            Get a quote →
-          </Btn>
+          <a
+            href={`tel:${company.phoneTel}`}
+            className="btn btn--sm btn--amber nav-cta"
+            aria-label={`Call ${company.phone}`}
+          >
+            Call now
+          </a>
 
           <button
             className={`burger ${drawerOpen ? "open" : ""}`}

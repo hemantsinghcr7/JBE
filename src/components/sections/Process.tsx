@@ -4,33 +4,33 @@ import { Reveal } from "@/components/ui/Reveal";
 
 export function Process() {
   return (
-    <section className="section" id="process">
+    <section className="process-sec" id="process">
       <div className="wrap">
         <Reveal>
           <div className="shead">
-            <Kicker>Process</Kicker>
+            <Kicker dark>Process</Kicker>
             <h2>
               One loop, run
               <br />
-              for <span className="rd">28 years.</span>
+              for <span className="accent-cu">28 years.</span>
             </h2>
-            <p className="lede">
-              Buy, process, supply. Three steps, no middlemen theatrics — the
-              same loop we&apos;ve run since 1998.
+            <p>
+              Buy, process, supply. Three steps, no middlemen — the same loop
+              we&apos;ve run since 1998.
             </p>
           </div>
         </Reveal>
 
         <div className="steps">
           {processSteps.map((step, i) => (
-            <Reveal key={step.no} delay={i * 0.1}>
+            <Reveal key={step.no} delay={i * 0.08}>
               <div className="step">
-                {i < processSteps.length - 1 && (
-                  <span className="s-arrow">→</span>
-                )}
-                <span className="s-no">{step.no}</span>
-                <h3>{step.title}</h3>
-                <p>{step.body}</p>
+                <span className="s-no">0{i + 1}</span>
+                <div className="s-content">
+                  <span className="s-tag">{step.no}</span>
+                  <h3>{step.title}</h3>
+                  <p>{step.body}</p>
+                </div>
               </div>
             </Reveal>
           ))}

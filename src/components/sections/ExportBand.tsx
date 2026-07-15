@@ -1,12 +1,11 @@
-import { Kicker } from "@/components/ui/Kicker";
 import { Btn } from "@/components/ui/Btn";
 
 export function ExportBand() {
   return (
-    <section className="section export">
+    <section className="export">
       <div className="wrap">
-        <div>
-          <Kicker white>Next</Kicker>
+        <div className="export-content">
+          <p className="export-kicker">Next</p>
           <h2>
             Cross-border
             <br />
@@ -18,9 +17,11 @@ export function ExportBand() {
             let&apos;s talk early.
           </p>
         </div>
-        <Btn variant="white" href="#contact" className="ex-cta">
-          Partner with us →
-        </Btn>
+        <div className="export-cta">
+          <Btn variant="dark" href="#contact">
+            Partner with us →
+          </Btn>
+        </div>
       </div>
     </section>
   );

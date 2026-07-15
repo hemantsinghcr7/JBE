@@ -4,7 +4,7 @@ import { Reveal } from "@/components/ui/Reveal";
 
 export function Materials() {
   return (
-    <section className="section materials" id="materials">
+    <section className="materials-sec" id="materials">
       <div className="wrap">
         <Reveal>
           <div className="shead">
@@ -12,55 +12,48 @@ export function Materials() {
             <h2>
               Three metals.
               <br />
-              Any honest <span className="rd">volume.</span>
+              Any honest <span className="accent">volume.</span>
             </h2>
-            <p className="lede">
+            <p>
               We buy across the common trade grades — factory scrap, yard lots,
-              mixed or segregated. If it&apos;s non-ferrous, call us before you
-              sell it.
+              mixed or segregated. If it&apos;s non-ferrous, call us before you sell it.
             </p>
           </div>
         </Reveal>
 
-        <div className="mat-grid">
+        <div className="mat-rows">
           {materials.map((mat, i) => (
-            <Reveal key={mat.id} delay={i * 0.08}>
-              <article className="mat-card">
-                <div className={`mat-swatch ${mat.swatchClass}`}>
-                  <span className="swatch-sheen" aria-hidden="true" />
-                  <span className="swatch-grain" aria-hidden="true" />
-                  <span className="no">{mat.matNo}</span>
-                  <span className="sym">{mat.symbol}</span>
+            <Reveal key={mat.id} delay={i * 0.06}>
+              <div className={`mat-row mat-${mat.symbol.toLowerCase()}`}>
+                <div className="mat-row-top">
+                  <span className="mat-row-num">{mat.matNo}</span>
+                  <span className="mat-row-name">{mat.name}</span>
+                  <span className="mat-row-sym">{mat.symbol}</span>
                 </div>
-                <div className="mat-body">
-                  <h3>{mat.name}</h3>
-                  <p className="mat-sub">{mat.description}</p>
+                <div className="mat-row-bottom">
+                  <p className="mat-desc">{mat.description}</p>
                   <div className="grades">
                     {mat.grades.map((g) => (
-                      <div className="grow" key={g.code}>
+                      <div className="grade-pill" key={g.code}>
                         <span className="gname">{g.name}</span>
                         <span className="gcode">{g.code}</span>
                       </div>
                     ))}
                   </div>
                 </div>
-              </article>
+              </div>
             </Reveal>
           ))}
         </div>
 
         <Reveal>
-          <div className="supply">
-            <div className="sp-label">We also supply</div>
-            <div className="sp-items">
+          <div className="supply-strip">
+            <span className="supply-label">We also supply</span>
+            <div className="supply-items">
               {supplyItems.map((item) => (
-                <span key={item.label}>
-                  <i className={item.colorClass} />
-                  {item.label}
-                </span>
+                <span className="supply-item" key={item.label}>{item.label}</span>
               ))}
             </div>
-            <div className="sp-note">OUTBOUND · TO MANUFACTURERS IN MH &amp; GJ</div>
           </div>
         </Reveal>
       </div>
