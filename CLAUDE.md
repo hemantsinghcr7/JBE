@@ -47,7 +47,6 @@ JbeWebsite/
 │   │   └── useCountUp.ts
 │   └── lib/
 │       └── utils.ts
-└── static-v1/           ← original plain HTML/CSS/JS backup — do not delete
 ```
 
 ---
