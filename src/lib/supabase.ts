@@ -1,13 +1,22 @@
 import { createClient } from "@supabase/supabase-js";
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
+// Lazy singleton — created on first use, not at module evaluation time.
+// This prevents the build-time crash when env vars are absent (e.g. Vercel
+// static analysis runs before env vars are injected into the build context).
+let _client: ReturnType<typeof createClient> | null = null;
 
-// No Database generic here — hand-rolled types don't satisfy Supabase's internal
-// GenericSchema constraint cleanly. Type safety is provided by src/lib/db.ts
-// which wraps every query and returns explicitly typed results.
-//
-// To switch to generated types (recommended for Phase 2+):
-//   npx supabase gen types typescript --project-id ofhmnochmsxafouphhth > src/types/database.ts
-// Then add `import type { Database } from "@/types/database"` and pass it here.
-export const supabase = createClient(url, key);
+function getClient() {
+  if (!_client) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+    if (!url || !key) throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY");
+    _client = createClient(url, key);
+  }
+  return _client;
+}
+
+export const supabase = new Proxy({} as ReturnType<typeof createClient>, {
+  get(_target, prop) {
+    return (getClient() as unknown as Record<string | symbol, unknown>)[prop];
+  },
+});
