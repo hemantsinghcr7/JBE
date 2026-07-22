@@ -1,0 +1,241 @@
+/* ============================================================
+   LOGIN PAGE STYLES — /login
+   Imported by src/app/login/page.tsx only.
+   ============================================================ */
+
+.login-shell {
+  display: flex;
+  min-height: 100vh;
+  background: #f0f2f5;
+  font-family: var(--f-body);
+}
+
+/* ── Left panel — form card ── */
+.login-left {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: #f0f2f5;
+}
+
+@media (max-width: 800px) {
+  .login-left { flex: 1; }
+  .login-right { display: none; }
+}
+
+.login-card {
+  width: 100%;
+  max-width: 440px;
+  background: #fff;
+  border: 1px solid var(--line);
+  padding: 2.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.login-card-top {
+  border-bottom: 3px solid var(--blue);
+  padding-bottom: 1.5rem;
+  margin-bottom: 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-logo-tile {
+  width: 44px;
+  height: 44px;
+  background: var(--blue);
+  color: #fff;
+  font-family: var(--f-display);
+  font-weight: 800;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-heading {
+  font-family: var(--f-display);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--ink);
+  margin-bottom: 0.25rem;
+}
+
+.login-sub {
+  font-size: 0.85rem;
+  color: var(--ink-50);
+  margin-bottom: 1.75rem;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.login-label {
+  font-family: var(--f-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-70);
+  font-weight: 600;
+}
+
+.login-input {
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--line);
+  font-family: var(--f-body);
+  font-size: 0.9rem;
+  color: var(--ink);
+  background: #fff;
+  width: 100%;
+  transition: border-color 0.15s;
+}
+
+.login-input:focus {
+  outline: none;
+  border-color: var(--blue);
+}
+
+.login-submit {
+  margin-top: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: var(--blue);
+  color: #fff;
+  border: none;
+  font-family: var(--f-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s;
+  width: 100%;
+}
+
+.login-submit:hover:not(:disabled) { background: var(--blue-deep); }
+.login-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.login-error {
+  color: var(--red);
+  font-size: 0.82rem;
+  padding: 0.5rem 0.75rem;
+  background: #fff0f0;
+  border: 1px solid #fcc;
+  margin-top: 0.25rem;
+}
+
+.login-dev-btn {
+  margin-top: 0.75rem;
+  padding: 0.55rem 1rem;
+  background: transparent;
+  color: var(--ink-50);
+  border: 1px dashed var(--line);
+  font-family: var(--f-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  width: 100%;
+  transition: border-color 0.15s, color 0.15s;
+}
+.login-dev-btn:hover:not(:disabled) { border-color: var(--ink-70); color: var(--ink); }
+.login-dev-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.login-back {
+  margin-top: 1.5rem;
+  font-size: 0.8rem;
+  color: var(--ink-50);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: color 0.15s;
+}
+
+.login-back:hover { color: var(--ink); }
+
+/* ── Right panel — branding ── */
+.login-right {
+  flex: 1;
+  background: var(--ink);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 3rem 4rem;
+  position: relative;
+  overflow: hidden;
+}
+
+/* subtle grid overlay */
+.login-right::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+}
+
+.login-right-label {
+  font-family: var(--f-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.4);
+  margin-bottom: 1.25rem;
+  position: relative;
+}
+
+.login-right-label::before {
+  content: "";
+  display: inline-block;
+  width: 28px;
+  height: 2px;
+  background: var(--blue);
+  vertical-align: middle;
+  margin-right: 0.75rem;
+  margin-bottom: 2px;
+}
+
+.login-typewriter {
+  font-family: var(--f-display);
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-weight: 900;
+  color: #fff;
+  line-height: 1.1;
+  position: relative;
+}
+
+.login-typewriter-second {
+  font-weight: 400;
+  color: rgba(255,255,255,.55);
+}
+
+.login-cursor {
+  display: inline-block;
+  width: 3px;
+  height: 0.9em;
+  background: var(--red);
+  vertical-align: middle;
+  margin-left: 3px;
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
