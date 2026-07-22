@@ -15,7 +15,7 @@
  * and remove the casts in this file.
  */
 
-import { supabase } from "./supabase";
+import { getSupabase } from "./supabase";
 import type {
   CustomerRow,
   PurchaseRow,
@@ -29,7 +29,7 @@ import type {
 
 export const customers = {
   list: async () => {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from("customers")
       .select("*")
       .order("name");
@@ -37,7 +37,7 @@ export const customers = {
   },
 
   get: async (id: string) => {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from("customers")
       .select("*")
       .eq("id", id)
@@ -46,9 +46,9 @@ export const customers = {
   },
 
   insert: async (row: { name: string; phone?: string | null; address?: string | null }) => {
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from("customers")
-      .insert(row as unknown as Record<string, unknown>);
+      .insert(row as unknown as object);
     return { error };
   },
 };
@@ -57,7 +57,7 @@ export const customers = {
 
 export const purchases = {
   list: async () => {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from("purchases")
       .select("*, customer:customers(name)")
       .order("purchase_date", { ascending: false })
@@ -66,7 +66,7 @@ export const purchases = {
   },
 
   get: async (id: string) => {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from("purchases")
       .select("*, customer:customers(*), items:purchase_items(*), payments(*)")
       .eq("id", id)
@@ -80,24 +80,24 @@ export const purchases = {
     status?: "draft" | "complete";
     notes?: string | null;
   }) => {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from("purchases")
-      .insert(row as unknown as Record<string, unknown>)
+      .insert(row as unknown as object)
       .select()
       .single();
     return { data: data as PurchaseRow | null, error };
   },
 
   updateStatus: async (id: string, status: "draft" | "complete") => {
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from("purchases")
-      .update({ status } as unknown as Record<string, unknown>)
+      .update({ status } as unknown as object)
       .eq("id", id);
     return { error };
   },
 
   stats: async () => {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from("purchases")
       .select("id, status, purchase_date");
     return { data: (data ?? []) as Pick<PurchaseRow, "id" | "status" | "purchase_date">[], error };
@@ -118,9 +118,9 @@ export const purchaseItems = {
       rate_timing?: PurchaseItemRow["rate_timing"];
     }[]
   ) => {
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from("purchase_items")
-      .insert(rows as unknown as Record<string, unknown>[]);
+      .insert(rows as unknown as object[]);
     return { error };
   },
 };
@@ -133,7 +133,7 @@ export const stock = {
   // Returns total received net weight (kg) grouped by metal type, across all purchases.
   // "Stock" here means total inbound — we have no dispatch table yet.
   byMetal: async (): Promise<{ data: StockByMetal; error: unknown }> => {
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from("purchase_items")
       .select("metal_type, net_weight");
 
@@ -158,9 +158,9 @@ export const payments = {
     payment_date?: string;
     notes?: string | null;
   }) => {
-    const { error } = await supabase
+    const { error } = await getSupabase()
       .from("payments")
-      .insert(row as unknown as Record<string, unknown>);
+      .insert(row as unknown as object);
     return { error };
   },
 };
