@@ -1,6 +1,15 @@
 "use client";
 import { useEffect, useRef } from "react";
 
+/**
+ * Renders two scroll-driven UI extras:
+ *   1. A red progress bar pinned to the top of the viewport.
+ *   2. A "back to top" button that appears after 600px of scroll.
+ *
+ * Both are driven by a single passive scroll listener that mutates the DOM
+ * directly via refs — no setState — to avoid scheduling a React re-render
+ * on every scroll event (which fires ~60 times/sec while scrolling).
+ */
 export function ScrollExtras() {
   const progressRef = useRef<HTMLDivElement>(null);
   const totopRef = useRef<HTMLButtonElement>(null);

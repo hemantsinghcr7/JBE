@@ -45,7 +45,7 @@ const jsonLd = {
   name: company.name,
   description: "Non-ferrous scrap trading — aluminium, copper and brass. Established 1998.",
   foundingDate: String(company.founded),
-  telephone: `+${company.phoneTel}`,
+  telephone: company.phoneTel,
   taxID: company.gst,
   address: {
     "@type": "PostalAddress",
