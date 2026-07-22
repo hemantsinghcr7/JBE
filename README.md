@@ -1,10 +1,10 @@
-# Jai Bhawani Enterprises — Website
+# Jai Bhawani Enterprises — Website & Operations Console
 
-Corporate marketing website for **Jai Bhawani Enterprises (JBE)**, a family-owned non-ferrous scrap metal trading business established in 1998, based in Nashik, Maharashtra, India.
+Corporate marketing website and internal operations dashboard for **Jai Bhawani Enterprises (JBE)**, a family-owned non-ferrous scrap metal trading business established in 1998 in Nashik, Maharashtra, India.
 
 **Live site:** https://jbe-one.vercel.app  
 **Domain (planned):** jbhawanienterprises.in  
-**Stack:** Next.js · TypeScript · Tailwind CSS · Vercel
+**Stack:** Next.js 16 · TypeScript · Tailwind CSS 4 · Supabase · Vercel
 
 ---
 
@@ -17,22 +17,29 @@ Corporate marketing website for **Jai Bhawani Enterprises (JBE)**, a family-owne
 5. [Architecture](#5-architecture)
 6. [Design System](#6-design-system)
 7. [Content Editing](#7-content-editing)
-8. [Environment Variables](#8-environment-variables)
-9. [Deployment](#9-deployment)
-10. [Contributing](#10-contributing)
-11. [Roadmap](#11-roadmap)
+8. [Operations Dashboard](#8-operations-dashboard)
+9. [Environment Variables](#9-environment-variables)
+10. [Deployment](#10-deployment)
+11. [Contributing](#11-contributing)
+12. [Roadmap](#12-roadmap)
 
 ---
 
 ## 1. Project Overview
 
-JBE's website serves as the company's primary online presence — a single-page brochure site targeting:
+This repository contains two distinct products served from the same Next.js app:
 
-- **Scrap sellers** — factories and yards looking to offload aluminium, copper, and brass scrap
-- **Buyers** — manufacturers in Maharashtra and Gujarat sourcing graded non-ferrous material
-- **Export partners** — as JBE builds cross-border supply lines
+### Marketing site (`/`)
+JBE's primary online presence — a single-page brochure site targeting scrap sellers, buyers, and export partners across Maharashtra and Gujarat.
 
-The site is deliberately lean: no CMS, no database, no login. All content lives in one TypeScript file (`src/data/content.ts`) so anyone on the team can update it without touching component code.
+### Operations console (`/dashboard`)
+An internal web app replacing JBE's legacy desktop software. It digitises the daily scrap purchase workflow:
+
+1. Customer brings scrap → workers weigh by metal type, record gross weight and sack count
+2. Scrap is cleaned — impurities removed, deduction weight agreed
+3. Net weight calculated, rate set (before or after weighing)
+4. Customer reviews paperwork, agrees to deductions → purchase marked **Complete**
+5. Printed A4 purchase voucher handed to customer
 
 ---
 
@@ -40,10 +47,12 @@ The site is deliberately lean: no CMS, no database, no login. All content lives 
 
 | Layer | Choice | Why |
 |---|---|---|
-| Framework | Next.js 16 (App Router) | Server components by default, built-in font/image optimisation, Vercel-native |
-| Language | TypeScript 5 (strict) | Catches content-shape mismatches at compile time |
-| Styling | Tailwind CSS 4 + hand-authored CSS | Design tokens in CSS custom properties; Tailwind for utilities |
-| Fonts | next/font/google | Zero layout shift; no external network request at runtime |
+| Framework | Next.js 16 (App Router) | Server components by default, route-segment layouts, Vercel-native |
+| Language | TypeScript 5 (strict) | Catches schema mismatches at compile time |
+| Styling | Tailwind CSS 4 + hand-authored CSS | Design tokens as CSS custom properties; separate CSS files per route segment |
+| Database | Supabase (PostgreSQL) | Managed Postgres, real-time ready, generous free tier |
+| Auth | Supabase Auth (email/password) | Cookie-based sessions work with Next.js middleware |
+| Fonts | next/font/google | Zero layout shift; no external request at runtime |
 | Deployment | Vercel (Hobby) | Auto-deploy on push to `main`; preview URLs on every PR |
 
 ---
@@ -52,26 +61,37 @@ The site is deliberately lean: no CMS, no database, no login. All content lives 
 
 ### Prerequisites
 
-- **Node.js** ≥ 20 (check with `node -v`)
+- **Node.js** ≥ 20 (`node -v`)
 - **npm** ≥ 10 (bundled with Node 20)
+- A **Supabase** account with the JBE project (credentials from Hemant)
 
 ### Install and run
 
 ```bash
-# Clone the repo
 git clone https://github.com/hemantsinghcr7/JBE.git
 cd JBE
-
-# Install dependencies
 npm install
+```
 
-# Start the development server
+Create `.env.local` in the project root:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://ofhmnochmsxafouphhth.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<get from Hemant>
+
+# Dev quick-login (local only — never commit)
+NEXT_PUBLIC_DEV_EMAIL=your@email.com
+NEXT_PUBLIC_DEV_PASSWORD=your-password
+```
+
+```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000).  
+Dashboard: [http://localhost:3000/dashboard](http://localhost:3000/dashboard) — sign in at `/login` first.
 
-### Other scripts
+### Scripts
 
 | Command | What it does |
 |---|---|
@@ -79,9 +99,9 @@ Open [http://localhost:3000](http://localhost:3000).
 | `npm run build` | Production build |
 | `npm run start` | Serve the production build locally |
 | `npm run lint` | Run ESLint |
-| `npm run type-check` | TypeScript type-check without emitting files |
+| `npm run type-check` | TypeScript type-check without emitting |
 | `npm run format` | Format all files with Prettier |
-| `npm run format:check` | Check formatting without writing (used in CI) |
+| `npm run format:check` | Check formatting (used in CI) |
 
 ---
 
@@ -90,231 +110,284 @@ Open [http://localhost:3000](http://localhost:3000).
 ```
 JbeWebsite/
 ├── .github/
-│   └── workflows/
-│       └── ci.yml              # CI: lint + type-check + build on every PR
+│   └── workflows/ci.yml        # CI: lint + type-check + build on every PR
 ├── public/
 │   ├── Images/                 # Site images (webp preferred)
 │   └── robots.txt
 ├── src/
 │   ├── app/
-│   │   ├── layout.tsx          # Root layout: fonts, <head> metadata, JSON-LD
-│   │   ├── page.tsx            # Home page — imports and arranges all sections
-│   │   ├── not-found.tsx       # 404 page
-│   │   ├── sitemap.ts          # Dynamic sitemap.xml generation
-│   │   └── globals.css         # ALL styles: design tokens + component CSS
+│   │   ├── layout.tsx          # Root layout: fonts, <head> metadata, JSON-LD structured data
+│   │   ├── page.tsx            # Home page — imports all marketing sections
+│   │   ├── not-found.tsx       # Custom 404 page
+│   │   ├── sitemap.ts          # Dynamic sitemap.xml
+│   │   ├── globals.css         # Marketing site styles: tokens + all component CSS
+│   │   ├── login/              # /login — auth page
+│   │   │   ├── page.tsx
+│   │   │   └── login.css       # Login page styles (isolated — not in globals.css)
+│   │   └── dashboard/          # /dashboard/* — operations console (auth-gated)
+│   │       ├── layout.tsx      # Dashboard shell: sidebar nav + main scroll area
+│   │       ├── dashboard.css   # All dashboard styles (dash- prefix; separate file)
+│   │       ├── page.tsx        # Overview: stat cards, stock levels, bar chart
+│   │       ├── purchases/
+│   │       │   ├── page.tsx    # Purchases list
+│   │       │   ├── new/        # New purchase form
+│   │       │   └── [id]/
+│   │       │       ├── page.tsx      # Purchase detail: items, payments, actions
+│   │       │       └── print/        # Printable A4 purchase voucher
+│   │       └── customers/
+│   │           ├── page.tsx    # Customer list
+│   │           └── new/        # Add customer
 │   ├── components/
-│   │   ├── layout/             # Chrome: TopStrip, Navbar, MobileDrawer, Footer, ScrollExtras
-│   │   ├── sections/           # Page sections: Hero, Ticker, Stats, About, Materials, Process, ExportBand, Contact
-│   │   └── ui/                 # Primitives: Btn, Kicker, LogoTile, Reveal
+│   │   ├── layout/             # Marketing chrome: TopStrip, Navbar, MobileDrawer, Footer, ScrollExtras
+│   │   ├── sections/           # Marketing sections: Hero, Ticker, Stats, About, Materials, Process, ExportBand, Contact
+│   │   ├── ui/                 # Shared primitives: Btn, Kicker, LogoTile, Reveal
+│   │   └── dashboard/          # Dashboard-specific components (all "use client"):
+│   │                           #   LoginForm, NewPurchaseForm, NewCustomerForm,
+│   │                           #   RecordPaymentForm, MarkCompleteButton, PrintButton
 │   ├── data/
-│   │   └── content.ts          # Single source of truth for all editable content
+│   │   └── content.ts          # Single source of truth for all marketing content
 │   ├── hooks/
-│   │   ├── useCountUp.ts       # Count-up animation (DOM-mutation variant for perf)
+│   │   ├── useCountUp.ts       # Count-up animation (DOM mutation — no React re-renders)
 │   │   └── useScrollSpy.ts     # IntersectionObserver active-section tracker
-│   └── lib/
-│       └── utils.ts            # cn() classname helper
-├── static-v1/                  # Original plain HTML/CSS/JS — kept as reference only
-├── CLAUDE.md                   # AI assistant context and project rules
-├── ROADMAP.md                  # Feature roadmap by phase
-└── package.json
+│   ├── lib/
+│   │   ├── db.ts               # Typed DB access layer — all Supabase queries live here
+│   │   ├── supabase.ts         # Base Supabase client (no Database generic)
+│   │   ├── supabase-browser.ts # Browser client for auth in client components
+│   │   ├── supabase-server.ts  # Server client for auth in middleware
+│   │   ├── toWords.ts          # Converts rupee amounts to Indian English words
+│   │   └── utils.ts            # cn() classname helper
+│   ├── middleware.ts            # Auth guard: redirects /dashboard/* to /login if no session
+│   └── types/
+│       └── database.ts         # Hand-maintained DB row types (see upgrade path below)
+├── supabase/
+│   └── schema.sql              # DB schema reference (tables already live in Supabase)
+├── CLAUDE.md                   # AI assistant context and all project rules
+├── CONTRIBUTING.md             # Branch strategy, commit format, PR process
+└── ROADMAP.md                  # Feature roadmap by phase
 ```
 
 ---
 
 ## 5. Architecture
 
-### Server vs client components
+### Marketing site: server-first
 
-Next.js App Router makes every component a **Server Component by default** — they render on the server and send plain HTML to the browser. This is the default and what we want for most of the site.
+Every component is a **Server Component** by default — renders on the server, sends plain HTML. Client components (`"use client"`) are used only when browser APIs, state, or event handlers are required.
 
-A component must be a **Client Component** (`"use client"` at the top) only when it needs:
-- Browser APIs (`window`, `document`, `IntersectionObserver`)
-- React state (`useState`, `useRef`)
-- Event handlers
+Current client components: `Navbar`, `MobileDrawer`, `ScrollExtras`, `Stats`, `Reveal`, `Contact`, and all dashboard interactive components.
 
-Current client components: `Navbar`, `MobileDrawer`, `ScrollExtras`, `Stats`, `Reveal`, `Contact`.
+### Operations dashboard: repository pattern
 
-**Rule:** default to Server Components. Only add `"use client"` when you have a specific reason.
+All database access goes through `src/lib/db.ts`. Components never import from `supabase.ts` directly.
 
-### Content layer
+```
+Client component
+  → db.ts (typed wrapper, all queries here)
+    → supabase.ts (base client, no generics)
+      → Supabase (PostgreSQL)
+```
 
-All editable content — text, numbers, contact info, nav links, material grades — lives in `src/data/content.ts`. Components import named exports from there.
+This isolates the `as unknown as` type cast to one file, makes queries easy to test, and means swapping the DB only requires changing `db.ts`.
 
-**Never hardcode text, phone numbers, addresses, or product names in JSX.** If something might change, it belongs in `content.ts`.
+### CSS isolation strategy
 
-### Styling approach
+Tailwind CSS 4's PostCSS pipeline drops CSS appended after the main layer in `globals.css`. Dashboard styles live in a separate file (`dashboard.css`) imported only by the dashboard layout. This means:
 
-All styles live in `src/app/globals.css`. We use **hand-authored CSS class names** (`.btn`, `.kicker`, `.mat-card`, etc.) built on top of CSS custom properties. Tailwind CSS is available for one-off utilities but the component classes are the primary styling method.
+- Dashboard CSS loads only on dashboard pages
+- No class name collision with marketing styles (all dashboard classes are `dash-` prefixed)
+- `globals.css` stays fast — only marketing styles
 
-**Never use raw hex values in component files.** Always reference a CSS custom property (`var(--blue)`, `var(--red)`, etc.).
+### Auth flow
 
-### Animation strategy
+```
+/dashboard/* request
+  → middleware.ts
+    → createSupabaseMiddleware() checks session cookie
+      → no session → redirect to /login
+      → session valid → serve page
+```
 
-All animations are **CSS-driven** — JS only adds or removes a class name:
+Session is set by Supabase Auth on sign-in and stored in cookies automatically by `@supabase/ssr`. The middleware is the single enforcement point — update only there to change auth behaviour.
 
-- **Scroll reveal:** `Reveal` component adds `.in` via `IntersectionObserver` → CSS handles the fade/slide
-- **Count-up:** `useCountUpRef` mutates `textContent` directly on every animation frame (avoids React re-renders)
-- **Ticker:** pure CSS `animation: ticker-anim` infinite loop
-- **Hover effects:** pure CSS `transition`
+### Purchase voucher / print
+
+`/dashboard/purchases/[id]/print` is a server component that renders an A4-sized HTML receipt. `@media print` CSS hides the sidebar and action buttons, leaving a clean printable document. The `toWords.ts` utility converts the total amount to Indian English words (handles up to 99 crore).
 
 ---
 
 ## 6. Design System
 
-All design tokens are CSS custom properties defined at the top of `globals.css`.
+All tokens are CSS custom properties in `src/app/globals.css`.
 
 ### Colours
 
 | Token | Value | Use |
 |---|---|---|
-| `--blue` | `#0C3C8F` | Primary brand — nav, stats band, footer |
-| `--blue-deep` | `#082A66` | Hover states on blue surfaces |
-| `--red` | `#D32027` | CTAs, kicker squares, accents, required markers |
-| `--ink` | `#0B1B33` | Body text, dark sections |
+| `--blue` | `#0C3C8F` | Brand primary: nav, stats, footer, dashboard accents |
+| `--blue-deep` | `#082A66` | Hover on blue |
+| `--red` | `#D32027` | CTAs, kickers, balance-due, accents |
+| `--ink` | `#0B1B33` | Body text, dashboard sidebar |
 | `--ink-70` | `rgba(11,27,51,.7)` | Secondary text |
-| `--ink-50` | `rgba(11,27,51,.5)` | Placeholder, muted |
+| `--ink-50` | `rgba(11,27,51,.5)` | Muted / placeholder |
 | `--paper` | `#F5F4F0` | Page background |
 | `--card` | `#FFFFFF` | Card surfaces |
-| `--line` | `rgba(11,27,51,.16)` | Borders, dividers |
+| `--line` | `rgba(11,27,51,.16)` | Borders |
 | `--line-soft` | `rgba(11,27,51,.09)` | Subtle separators |
 
 ### Typography
 
 | Variable | Font | Weights | Use |
 |---|---|---|---|
-| `--f-display` | Archivo | 500–900 | Headings, hero, brand name |
-| `--f-body` | IBM Plex Sans | 400–700 | All body copy |
-| `--f-mono` | IBM Plex Mono | 400–600 | Kickers, labels, codes, GST number |
+| `--f-display` | Archivo | 500–900 | Headings, hero, stat values |
+| `--f-body` | IBM Plex Sans | 400–700 | Body copy |
+| `--f-mono` | IBM Plex Mono | 400–600 | Labels, codes, GST, table data |
 
-### Layout
+### Visual signatures
 
-- Max content width: `1160px` (`--wrap`)
-- Base padding: `20px` (`--pad`)
-- Border radius: **0px everywhere** — the industrial sharp-edge aesthetic is intentional
-
-### Visual signatures (do not change these)
-
-- **JBE tile** — 42×42px blue square, white "JBE", red CSS triangle top-right corner
-- **Kicker labels** — mono uppercase, red `■` prefix injected via CSS `::before`, `0.18em` letter-spacing
+- **JBE tile** — 42×42px blue square, white "JBE", red CSS triangle top-right
+- **Kicker labels** — mono uppercase, red `■` prefix, `0.18em` letter-spacing
 - **Metal swatches** — CSS gradient per metal (AL/CU/BR), grain overlay, hover sheen
-- **Sharp edges** — zero border-radius across the entire site
+- **Sharp edges** — zero border-radius everywhere, including the dashboard
 
 ---
 
 ## 7. Content Editing
 
-All content is in [`src/data/content.ts`](src/data/content.ts). You do not need to touch any component files to update:
+All marketing content is in [`src/data/content.ts`](src/data/content.ts). No component files need touching to update:
 
-- Company name, GST, phone, address → `company` object
-- Animated counters → `stats` array
-- Metal materials and grades → `materials` array
-- Process steps → `processSteps` array
-- About section timeline → `timeline` array
-- Navigation links → `navLinks` array
-- Footer contact rows → `contactRows` array
-- Contact form role dropdown → `roleOptions` array
+| Data | Key |
+|---|---|
+| Company name, GST, phone, address | `company` |
+| Animated counters | `stats` |
+| Metal materials and grades | `materials` |
+| Process steps | `processSteps` |
+| About timeline | `timeline` |
+| Navigation links | `navLinks` |
+| Contact rows | `contactRows` |
 
-### Adding a new stat
+---
 
-```ts
-// src/data/content.ts
-export const stats = [
-  { value: 28, suffix: "", unit: "YRS", label: "In the trade" },
-  // add a new entry here — the Stats component maps over this array
-  { value: 500, suffix: "+", unit: "MT", label: "Processed monthly" },
-];
+## 8. Operations Dashboard
+
+The dashboard at `/dashboard` is an auth-gated internal tool. Access requires signing in at `/login` with a Supabase Auth account.
+
+### Key pages
+
+| Route | What it does |
+|---|---|
+| `/dashboard` | Overview: today's count, pending review, stock by metal, chart |
+| `/dashboard/purchases` | All purchases — sortable, filterable by status |
+| `/dashboard/purchases/new` | Record a new purchase (customer + metal items) |
+| `/dashboard/purchases/[id]` | Detail: items, payments, mark complete, print |
+| `/dashboard/purchases/[id]/print` | Printable A4 purchase voucher with amount in words |
+| `/dashboard/customers` | Customer directory |
+| `/dashboard/customers/new` | Add a customer |
+| `/login` | Sign in (Supabase Auth) |
+
+### Purchase status flow
+
+```
+draft  →  (customer reviews paperwork)  →  complete
 ```
 
-### Updating the phone number
+A purchase starts as **draft** when recorded. After the customer visits, reviews the weighment details and agrees to deductions, click "✓ Mark as Complete" — this triggers an inline confirmation (no `confirm()` dialog) then updates Supabase.
 
-Change both `phone` (display format) and `phoneTel` (E.164 format for `tel:` links) in the `company` object.
+### Stock on hand
+
+The overview shows total received weight by metal type, aggregated from all `purchase_items`. This represents inbound stock. Outbound/dispatch tracking is a future phase — when added, "stock on hand" will be inbound minus outbound.
+
+### Dev quick login
+
+In development, the login page shows a "⚡ Dev — Quick Login" button. Set credentials in `.env.local`:
+```env
+NEXT_PUBLIC_DEV_EMAIL=your@email.com
+NEXT_PUBLIC_DEV_PASSWORD=your-password
+```
+This button does not appear in production builds.
 
 ---
 
-## 8. Environment Variables
+## 9. Environment Variables
 
-None required currently. When added (e.g. contact form email service, future API routes):
-
-1. Create `.env.local` in the project root (already in `.gitignore` — never commit this)
-2. Add the key to Vercel dashboard under **Settings → Environment Variables**
-3. Document the key name below (never the value)
-
-| Key | Purpose | Required |
+| Key | Where | Purpose |
 |---|---|---|
-| *(none yet)* | | |
+| `NEXT_PUBLIC_SUPABASE_URL` | Vercel + `.env.local` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Vercel + `.env.local` | Supabase anon/publishable key |
+| `NEXT_PUBLIC_DEV_EMAIL` | `.env.local` only | Dev quick-login email |
+| `NEXT_PUBLIC_DEV_PASSWORD` | `.env.local` only | Dev quick-login password |
+
+**Never commit `.env.local`.** It is already in `.gitignore`.  
+**Never add `NEXT_PUBLIC_DEV_*` to Vercel** — they are local developer shortcuts only.
 
 ---
 
-## 9. Deployment
-
-Deployment is fully automatic via Vercel.
+## 10. Deployment
 
 | Branch | Behaviour |
 |---|---|
-| `main` | Auto-deploys to production: https://jbe-one.vercel.app |
-| Any other branch / PR | Gets a unique preview URL (e.g. `jbe-abc123.vercel.app`) |
+| `main` | Auto-deploys to https://jbe-one.vercel.app |
+| Any branch / PR | Gets a unique preview URL |
 
-**To deploy:** merge your PR to `main`. That's it.
+**To deploy:** merge your PR to `main`. Vercel handles the rest.
 
-### Manual production deploy (emergency only)
+### Required Vercel environment variables
 
-```bash
-npm run build   # verify it builds locally first
-git push origin main
-```
+Go to Vercel dashboard → Settings → Environment Variables → add for Production and Preview:
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 
-### Custom domain
+### Custom domain checklist (when `jbhawanienterprises.in` is purchased)
 
-When `jbhawanienterprises.in` is purchased:
-1. Add it in Vercel dashboard → **Domains**
-2. Point DNS as instructed by Vercel
+1. Add domain in Vercel → Domains
+2. Point DNS as instructed
 3. Update `BASE_URL` in `src/app/sitemap.ts`
-4. Update `Sitemap:` in `public/robots.txt`
-5. Update the `openGraph.url` in `src/app/layout.tsx`
+4. Update `Sitemap:` line in `public/robots.txt`
+5. Update `openGraph.url` in `src/app/layout.tsx`
 
 ---
 
-## 10. Contributing
+## 11. Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide. Quick reference:
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide.
 
 ### Branch naming
 
 ```
-feature/<name>   → new features          e.g. feature/rate-estimator
-fix/<name>       → bug fixes             e.g. fix/mobile-nav-overlap
-setup/<name>     → infra / config        e.g. setup/email-integration
+feature/<name>   e.g. feature/stock-dispatch
+fix/<name>       e.g. fix/receipt-decimal-format
+setup/<name>     e.g. setup/supabase-rls-policies
+content/<name>   e.g. content/update-grades
 ```
 
 ### Workflow
 
 1. Branch off `main`
-2. Make your changes
-3. Run `npm run lint && npm run type-check` locally — CI will block merge if either fails
-4. Open a PR → CI runs automatically
-5. Get a review → merge to `main` → auto-deploys
+2. Make changes
+3. Run `npm run lint && npm run type-check` — CI blocks merge if either fails
+4. Open PR → CI runs automatically → get review → merge → auto-deploys
 
-### Code rules (enforced)
+### Non-negotiable rules
 
-- All content from `src/data/content.ts` — never hardcode in JSX
-- CSS custom properties — never raw hex in component files
-- `next/image` for all images — never `<img>`
-- TypeScript strict — no `any`
-- Mobile-first CSS — base styles mobile, scale up with `@media (min-width: ...)`
-- 44px minimum touch targets on all interactive elements
+- All DB calls via `src/lib/db.ts` — never import `supabase` directly in a component
+- Dashboard CSS in `src/app/dashboard/dashboard.css` — never in `globals.css`
+- All dashboard class names prefixed `dash-`
+- No `any` in TypeScript
+- No raw hex in component files — always `var(--token)`
 
 ---
 
-## 11. Roadmap
-
-See [ROADMAP.md](ROADMAP.md) for full detail.
+## 12. Roadmap
 
 | Phase | Feature | Status |
 |---|---|---|
 | 1 | Marketing website | ✅ Live |
-| 2 | Scrap rate estimator | 🔲 Planned |
-| 3 | Operations digitisation | 🔲 Planned |
-| 4 | Export portal | 🔲 Future |
+| 2 | Operations dashboard (auth · purchases · receipts) | ✅ Live |
+| 3 | Stock dispatch tracking (running inventory) | 🔲 Next |
+| 4 | Customer detail page + purchase history | 🔲 Next |
+| 5 | Scrap rate estimator (public-facing) | 🔲 Planned |
+| 6 | Export portal | 🔲 Future |
+
+See [ROADMAP.md](ROADMAP.md) for detail on each phase.
 
 ---
 
