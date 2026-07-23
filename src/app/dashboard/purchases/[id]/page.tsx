@@ -1,4 +1,5 @@
-import { purchases } from "@/lib/db";
+import { createDb } from "@/lib/db";
+import { createSupabaseServerComponent } from "@/lib/supabase-server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { RecordPaymentForm } from "@/components/dashboard/RecordPaymentForm";
@@ -6,20 +7,14 @@ import { MarkCompleteButton } from "@/components/dashboard/MarkCompleteButton";
 
 export const dynamic = "force-dynamic";
 
-const METAL_LABELS: Record<string, string> = {
-  AL: "Aluminium (AL)",
-  CU: "Copper (CU)",
-  BR: "Brass (BR)",
-  OTHER: "Other",
-};
-
 function fmt(n: number) {
   return n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 export default async function PurchaseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { data: purchase, error } = await purchases.get(id);
+  const db = createDb(await createSupabaseServerComponent());
+  const { data: purchase, error } = await db.purchases.get(id);
 
   if (error || !purchase) notFound();
 
@@ -81,7 +76,7 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
           <tbody>
             {purchase.items.map((item) => (
               <tr key={item.id}>
-                <td><strong>{METAL_LABELS[item.metal_type] ?? item.metal_type}</strong></td>
+                <td><strong>{item.metal_type}</strong></td>
                 <td style={{ textAlign: "right" }} className="dash-mono">{fmt(item.gross_weight)}</td>
                 <td style={{ textAlign: "right" }} className="dash-mono">{item.sacks_count ?? 0}</td>
                 <td style={{ textAlign: "right" }} className="dash-mono">{fmt(item.deduction_weight ?? 0)}</td>

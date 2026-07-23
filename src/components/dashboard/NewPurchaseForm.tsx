@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { purchases, purchaseItems } from "@/lib/db";
+import { createDb } from "@/lib/db";
+import { createSupabaseBrowser } from "@/lib/supabase-browser";
 import type { MetalType, RateTiming } from "@/types/database";
 
 interface Props {
@@ -90,7 +91,8 @@ export function NewPurchaseForm({ customers }: Props) {
 
     setSaving(true);
     try {
-      const { data: purchase, error: pErr } = await purchases.insert({
+      const db = createDb(createSupabaseBrowser());
+      const { data: purchase, error: pErr } = await db.purchases.insert({
         customer_id: customerId,
         purchase_date: purchaseDate,
         status,
@@ -99,7 +101,7 @@ export function NewPurchaseForm({ customers }: Props) {
 
       if (pErr || !purchase) throw pErr ?? new Error("Failed to create purchase");
 
-      const { error: iErr } = await purchaseItems.insertMany(
+      const { error: iErr } = await db.purchaseItems.insertMany(
         items.map((item) => ({
           purchase_id: purchase.id,
           metal_type: item.metal_type,

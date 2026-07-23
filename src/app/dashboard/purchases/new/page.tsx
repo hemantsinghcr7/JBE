@@ -1,10 +1,12 @@
-import { customers } from "@/lib/db";
+import { createDb } from "@/lib/db";
+import { createSupabaseServerComponent } from "@/lib/supabase-server";
 import { NewPurchaseForm } from "@/components/dashboard/NewPurchaseForm";
 
 export const dynamic = "force-dynamic";
 
 export default async function NewPurchasePage() {
-  const { data } = await customers.list();
+  const db = createDb(await createSupabaseServerComponent());
+  const { data } = await db.customers.list();
 
   return (
     <div className="dash-page">

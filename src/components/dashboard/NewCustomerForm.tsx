@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { customers } from "@/lib/db";
+import { createDb } from "@/lib/db";
+import { createSupabaseBrowser } from "@/lib/supabase-browser";
 
 export function NewCustomerForm() {
   const router = useRouter();
@@ -17,7 +18,8 @@ export function NewCustomerForm() {
     if (!name.trim()) { setError("Name is required."); return; }
 
     setSaving(true);
-    const { error: err } = await customers.insert({
+    const db = createDb(createSupabaseBrowser());
+    const { error: err } = await db.customers.insert({
       name: name.trim(),
       phone: phone.trim() || null,
       address: address.trim() || null,

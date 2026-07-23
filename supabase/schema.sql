@@ -27,6 +27,9 @@ create table if not exists purchases (
 -- ─── Purchase Items ───────────────────────────────────────────────────────────
 -- One row per metal type within a purchase.
 -- net_weight and amount are computed so they are always consistent with inputs.
+-- If the material list ever changes, update MetalType in src/types/database.ts
+-- AND run a matching ALTER TABLE ... DROP/ADD CONSTRAINT in Supabase — this
+-- file documents the constraint but does not run it against a live table.
 create table if not exists purchase_items (
   id                uuid primary key default gen_random_uuid(),
   purchase_id       uuid not null references purchases(id) on delete cascade,
@@ -72,14 +75,26 @@ create index if not exists purchase_items_purchase_idx on purchase_items(purchas
 create index if not exists payments_purchase_idx      on payments(purchase_id);
 
 -- ─── Row Level Security ───────────────────────────────────────────────────────
--- Enabled but open for now (auth added in a later phase).
--- Tighten these policies once login is implemented.
+-- All four tables are readable/writable only by a signed-in Supabase Auth
+-- session. The anon/publishable key is embedded in the client bundle by
+-- design, so without this, anyone could hit the Supabase REST API directly
+-- and read or modify customer, purchase, and payment data — the Next.js
+-- middleware only guards page routes, not the database itself.
+--
+-- Server Components attach the session via createSupabaseServerComponent()
+-- (src/lib/supabase-server.ts); Client Components via createSupabaseBrowser()
+-- (src/lib/supabase-browser.ts). Both are passed into createDb() in
+-- src/lib/db.ts so every query carries the signed-in user's JWT.
 alter table customers      enable row level security;
 alter table purchases      enable row level security;
 alter table purchase_items enable row level security;
 alter table payments       enable row level security;
 
-create policy "allow all" on customers      for all using (true);
-create policy "allow all" on purchases      for all using (true);
-create policy "allow all" on purchase_items for all using (true);
-create policy "allow all" on payments       for all using (true);
+create policy "authenticated only" on customers
+  for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "authenticated only" on purchases
+  for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "authenticated only" on purchase_items
+  for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "authenticated only" on payments
+  for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');

@@ -1,8 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 import type { NextRequest, NextResponse } from "next/server";
 
-// Server/middleware client — reads & writes auth cookies for SSR session checks.
-// For data queries, continue to use src/lib/db.ts.
+// Middleware client — reads & writes auth cookies for the route-guard session check.
 export function createSupabaseMiddleware(request: NextRequest, response: NextResponse) {
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -18,6 +18,26 @@ export function createSupabaseMiddleware(request: NextRequest, response: NextRes
             response.cookies.set(name, value, options);
           });
         },
+      },
+    }
+  );
+}
+
+// Server Component client — attaches the signed-in user's session cookie to
+// every query, so RLS policies gated on auth.role() = 'authenticated' resolve
+// correctly. setAll is a no-op: Server Components can't set cookies during
+// render, and middleware already refreshes the session on every request.
+export async function createSupabaseServerComponent() {
+  const cookieStore = await cookies();
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll() {},
       },
     }
   );

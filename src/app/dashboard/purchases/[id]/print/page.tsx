@@ -1,4 +1,5 @@
-import { purchases } from "@/lib/db";
+import { createDb } from "@/lib/db";
+import { createSupabaseServerComponent } from "@/lib/supabase-server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { toWords } from "@/lib/toWords";
@@ -23,7 +24,8 @@ function voucherNo(id: string, date: string) {
 
 export default async function PrintReceiptPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { data: purchase, error } = await purchases.get(id);
+  const db = createDb(await createSupabaseServerComponent());
+  const { data: purchase, error } = await db.purchases.get(id);
   if (error || !purchase) notFound();
 
   const totalAmount = purchase.items.reduce((s, i) => s + (i.amount ?? 0), 0);

@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { payments } from "@/lib/db";
+import { createDb } from "@/lib/db";
+import { createSupabaseBrowser } from "@/lib/supabase-browser";
 import type { PaymentType } from "@/types/database";
 
 export function RecordPaymentForm({ purchaseId, balanceDue }: { purchaseId: string; balanceDue: number }) {
@@ -20,14 +21,15 @@ export function RecordPaymentForm({ purchaseId, balanceDue }: { purchaseId: stri
     const amt = parseFloat(amount);
     if (!amt || amt <= 0) { setError("Enter a valid amount."); return; }
     setLoading(true);
-    const { error: err } = await payments.insert({
+    const db = createDb(createSupabaseBrowser());
+    const { error: err } = await db.payments.insert({
       purchase_id: purchaseId,
       amount: amt,
       payment_type: type,
       payment_date: date,
       notes: notes || null,
     });
-    if (err) { setError("Failed to record payment."); setLoading(false); return; }
+    if (err) { setError(`Failed to record payment: ${err.message}`); setLoading(false); return; }
     setOpen(false);
     setAmount("");
     setNotes("");

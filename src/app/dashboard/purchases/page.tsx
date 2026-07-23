@@ -1,10 +1,12 @@
-import { purchases } from "@/lib/db";
+import { createDb } from "@/lib/db";
+import { createSupabaseServerComponent } from "@/lib/supabase-server";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
 export default async function PurchasesPage() {
-  const { data, error } = await purchases.list();
+  const db = createDb(await createSupabaseServerComponent());
+  const { data, error } = await db.purchases.list();
 
   if (error) {
     return (

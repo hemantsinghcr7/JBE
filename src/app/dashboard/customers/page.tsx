@@ -1,10 +1,12 @@
-import { customers } from "@/lib/db";
+import { createDb } from "@/lib/db";
+import { createSupabaseServerComponent } from "@/lib/supabase-server";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
 export default async function CustomersPage() {
-  const { data, error } = await customers.list();
+  const db = createDb(await createSupabaseServerComponent());
+  const { data, error } = await db.customers.list();
 
   if (error) {
     return (

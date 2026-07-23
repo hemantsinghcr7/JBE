@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { purchases } from "@/lib/db";
+import { createDb } from "@/lib/db";
+import { createSupabaseBrowser } from "@/lib/supabase-browser";
 
 export function MarkCompleteButton({ purchaseId }: { purchaseId: string }) {
   const router = useRouter();
@@ -11,9 +12,10 @@ export function MarkCompleteButton({ purchaseId }: { purchaseId: string }) {
 
   async function handleConfirm() {
     setLoading(true);
-    const { error: err } = await purchases.updateStatus(purchaseId, "complete");
+    const db = createDb(createSupabaseBrowser());
+    const { error: err } = await db.purchases.updateStatus(purchaseId, "complete");
     if (err) {
-      setError("Failed to update status.");
+      setError(`Failed to update status: ${err.message}`);
       setLoading(false);
       setConfirming(false);
       return;

@@ -1,4 +1,5 @@
-import { purchases, customers, stock } from "@/lib/db";
+import { createDb } from "@/lib/db";
+import { createSupabaseServerComponent } from "@/lib/supabase-server";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -11,10 +12,11 @@ function metalColor(type: string): string {
 }
 
 async function getStats() {
+  const db = createDb(await createSupabaseServerComponent());
   const [p, c, s] = await Promise.all([
-    purchases.stats(),
-    customers.list(),
-    stock.byMetal(),
+    db.purchases.stats(),
+    db.customers.list(),
+    db.stock.byMetal(),
   ]);
   const today = new Date().toISOString().slice(0, 10);
   const rows = p.data;
