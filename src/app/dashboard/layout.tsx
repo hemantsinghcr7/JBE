@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { LogoutButton } from "@/components/dashboard/LogoutButton";
 import "./dashboard.css";
 
 export const metadata: Metadata = {
@@ -30,9 +31,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           ))}
         </nav>
         <div className="dash-sidebar-footer">
-          <Link href="/" className="dash-nav-link" style={{ fontSize: "0.75rem", opacity: 0.6 }}>
-            ← Back to website
-          </Link>
+          <LogoutButton />
         </div>
       </aside>
       <main className="dash-main">{children}</main>
