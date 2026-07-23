@@ -12,7 +12,29 @@ type GenericRelationship = {
   referencedColumns: string[];
 };
 
-export type MetalType = "AL" | "CU" | "BR" | "OTHER";
+export type MetalType =
+  | "Alternator/Starter Motor"
+  | "Aluminium Cast"
+  | "Aluminium Cuttings"
+  | "Aluminium Domestic"
+  | "Aluminium Extruded"
+  | "Aluminium Wheels"
+  | "Brass – Clean"
+  | "Brass – Contaminated"
+  | "Copper – Burnt/Tinned"
+  | "Copper Candy"
+  | "Copper Domestic"
+  | "Copper Millberry"
+  | "Electric Fridge Compressor"
+  | "Electric Motors Large"
+  | "Electric Motors Small"
+  | "Insulated Copper Wire – Low Grade"
+  | "Insulated Copper Wire – Medium Grade"
+  | "Radiator – Brass/Copper Clean"
+  | "Radiator – Brass/Copper Contaminated"
+  | "Radiators – Aluminium/Copper 5% Contamination"
+  | "Radiators – Aluminium/Copper Clean"
+  | "Other";
 export type PurchaseStatus = "draft" | "complete";
 export type PaymentType = "cash" | "credit";
 export type RateTiming = "before" | "after";

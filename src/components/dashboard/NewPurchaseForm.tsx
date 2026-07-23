@@ -18,7 +18,7 @@ interface ItemRow {
 }
 
 const EMPTY_ITEM: ItemRow = {
-  metal_type: "AL",
+  metal_type: "Aluminium Cast",
   gross_weight: "",
   sacks_count: "0",
   deduction_weight: "0",
@@ -26,11 +26,29 @@ const EMPTY_ITEM: ItemRow = {
   rate_timing: "before",
 };
 
-const METALS: { value: MetalType; label: string }[] = [
-  { value: "AL", label: "Aluminium (AL)" },
-  { value: "CU", label: "Copper (CU)" },
-  { value: "BR", label: "Brass (BR)" },
-  { value: "OTHER", label: "Other" },
+const METALS: MetalType[] = [
+  "Aluminium Cast",
+  "Aluminium Cuttings",
+  "Aluminium Domestic",
+  "Aluminium Extruded",
+  "Aluminium Wheels",
+  "Brass – Clean",
+  "Brass – Contaminated",
+  "Copper – Burnt/Tinned",
+  "Copper Candy",
+  "Copper Domestic",
+  "Copper Millberry",
+  "Alternator/Starter Motor",
+  "Electric Fridge Compressor",
+  "Electric Motors Large",
+  "Electric Motors Small",
+  "Insulated Copper Wire – Low Grade",
+  "Insulated Copper Wire – Medium Grade",
+  "Radiator – Brass/Copper Clean",
+  "Radiator – Brass/Copper Contaminated",
+  "Radiators – Aluminium/Copper 5% Contamination",
+  "Radiators – Aluminium/Copper Clean",
+  "Other",
 ];
 
 export function NewPurchaseForm({ customers }: Props) {
@@ -154,7 +172,7 @@ export function NewPurchaseForm({ customers }: Props) {
               onChange={(e) => updateItem(idx, { metal_type: e.target.value as MetalType })}
             >
               {METALS.map((m) => (
-                <option key={m.value} value={m.value}>{m.label}</option>
+                <option key={m} value={m}>{m}</option>
               ))}
             </select>
 

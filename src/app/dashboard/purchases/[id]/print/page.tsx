@@ -7,12 +7,6 @@ import "./print.css";
 
 export const dynamic = "force-dynamic";
 
-const METAL_LABELS: Record<string, string> = {
-  AL: "Aluminium (AL)",
-  CU: "Copper (CU)",
-  BR: "Brass (BR)",
-  OTHER: "Other",
-};
 
 function fmt(n: number) {
   return n.toLocaleString("en-IN", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
@@ -124,7 +118,7 @@ export default async function PrintReceiptPage({ params }: { params: Promise<{ i
           <tbody>
             {purchase.items.map((item) => (
               <tr key={item.id}>
-                <td>{METAL_LABELS[item.metal_type] ?? item.metal_type}</td>
+                <td>{item.metal_type}</td>
                 <td>{fmt(item.gross_weight)}</td>
                 <td style={{ textAlign: "center" }}>{item.sacks_count ?? 0}</td>
                 <td>{fmt(item.deduction_weight ?? 0)}</td>

@@ -3,12 +3,12 @@ import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
-const METAL_LABELS: Record<string, { label: string; color: string }> = {
-  AL: { label: "Aluminium", color: "#a8c0e8" },
-  CU: { label: "Copper",    color: "#c87941" },
-  BR: { label: "Brass",     color: "#c9a84c" },
-  OTHER: { label: "Other",  color: "#8a9bb0" },
-};
+function metalColor(type: string): string {
+  if (type.startsWith("Aluminium") || type.startsWith("Radiators – Aluminium")) return "#a8c0e8";
+  if (type.startsWith("Copper") || type.startsWith("Insulated Copper")) return "#c87941";
+  if (type.startsWith("Brass") || type.startsWith("Radiator – Brass")) return "#c9a84c";
+  return "#8a9bb0";
+}
 
 async function getStats() {
   const [p, c, s] = await Promise.all([
@@ -30,11 +30,7 @@ async function getStats() {
 export default async function DashboardPage() {
   const stats = await getStats();
 
-  // Sort metals for consistent display order: AL, CU, BR, then any others
-  const metalOrder = ["AL", "CU", "BR", "OTHER"];
-  const stockEntries = Object.entries(stats.stock).sort(
-    (a, b) => metalOrder.indexOf(a[0]) - metalOrder.indexOf(b[0])
-  );
+  const stockEntries = Object.entries(stats.stock).sort((a, b) => a[0].localeCompare(b[0]));
   const totalStock = stockEntries.reduce((sum, [, v]) => sum + v, 0);
 
   return (
@@ -78,16 +74,12 @@ export default async function DashboardPage() {
         <p style={{ color: "var(--ink-50)", fontSize: "0.85rem" }}>No stock data yet.</p>
       ) : (
         <div className="dash-stock-grid">
-          {stockEntries.map(([metal, kg]) => {
-            const meta = METAL_LABELS[metal] ?? { label: metal, color: "#8a9bb0" };
-            return (
-              <Link key={metal} href={`/dashboard/stock`} className="dash-stock-card">
-                <span className="dash-stock-symbol" style={{ color: meta.color }}>{metal}</span>
-                <span className="dash-stock-name">{meta.label}</span>
-                <span className="dash-stock-weight">{kg.toLocaleString("en-IN")} kg</span>
-              </Link>
-            );
-          })}
+          {stockEntries.map(([metal, kg]) => (
+            <Link key={metal} href="/dashboard/stock" className="dash-stock-card">
+              <span className="dash-stock-symbol" style={{ color: metalColor(metal), fontSize: "0.7rem" }}>{metal}</span>
+              <span className="dash-stock-weight">{kg.toLocaleString("en-IN")} kg</span>
+            </Link>
+          ))}
         </div>
       )}
 
@@ -114,16 +106,12 @@ export default async function DashboardPage() {
           <div className="dash-section-label" style={{ marginTop: "1.75rem" }}>Stock Breakdown</div>
           <div className="dash-chart-wrap">
             {stockEntries.map(([metal, kg]) => {
-              const meta = METAL_LABELS[metal] ?? { label: metal, color: "#8a9bb0" };
               const pct = totalStock > 0 ? (kg / totalStock) * 100 : 0;
               return (
                 <div key={metal} className="dash-chart-row">
                   <span className="dash-chart-label">{metal}</span>
                   <div className="dash-chart-track">
-                    <div
-                      className="dash-chart-bar"
-                      style={{ width: `${pct.toFixed(1)}%`, background: meta.color }}
-                    />
+                    <div className="dash-chart-bar" style={{ width: `${pct.toFixed(1)}%`, background: metalColor(metal) }} />
                   </div>
                   <span className="dash-chart-pct">{pct.toFixed(0)}%</span>
                   <span className="dash-chart-val">{kg.toLocaleString("en-IN")} kg</span>
