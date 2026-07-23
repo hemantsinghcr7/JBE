@@ -30,7 +30,18 @@ create table if not exists purchases (
 create table if not exists purchase_items (
   id                uuid primary key default gen_random_uuid(),
   purchase_id       uuid not null references purchases(id) on delete cascade,
-  metal_type        text not null check (metal_type in ('AL', 'CU', 'BR', 'OTHER')),
+  metal_type        text not null check (metal_type in (
+                      'Alternator/Starter Motor',
+                      'Aluminium Cast','Aluminium Cuttings','Aluminium Domestic',
+                      'Aluminium Extruded','Aluminium Wheels',
+                      'Brass – Clean','Brass – Contaminated',
+                      'Copper – Burnt/Tinned','Copper Candy','Copper Domestic','Copper Millberry',
+                      'Electric Fridge Compressor','Electric Motors Large','Electric Motors Small',
+                      'Insulated Copper Wire – Low Grade','Insulated Copper Wire – Medium Grade',
+                      'Radiator – Brass/Copper Clean','Radiator – Brass/Copper Contaminated',
+                      'Radiators – Aluminium/Copper 5% Contamination','Radiators – Aluminium/Copper Clean',
+                      'Other'
+                    )),
   gross_weight      numeric(10, 3) not null check (gross_weight >= 0),
   sacks_count       integer not null default 0 check (sacks_count >= 0),
   deduction_weight  numeric(10, 3) not null default 0 check (deduction_weight >= 0),
