@@ -128,32 +128,48 @@ JbeWebsite/
 │   │       ├── layout.tsx      # Dashboard shell: sidebar nav + main scroll area
 │   │       ├── dashboard.css   # All dashboard styles (dash- prefix; separate file)
 │   │       ├── page.tsx        # Overview: stat cards, stock levels, bar chart
-│   │       ├── purchases/
+│   │       ├── purchases/      # Buying side: scrap in from customers
 │   │       │   ├── page.tsx    # Purchases list
 │   │       │   ├── new/        # New purchase form
 │   │       │   └── [id]/
 │   │       │       ├── page.tsx      # Purchase detail: items, payments, actions
 │   │       │       └── print/        # Printable A4 purchase voucher
-│   │       └── customers/
-│   │           ├── page.tsx    # Customer list
-│   │           └── new/        # Add customer
+│   │       ├── customers/      # Scrap sellers
+│   │       │   ├── page.tsx    # Customer list
+│   │       │   ├── new/        # Add customer
+│   │       │   └── [id]/       # Customer profile: scrap received, account, history
+│   │       ├── sales/          # Selling side: scrap out to buyers
+│   │       │   ├── page.tsx    # Sales list
+│   │       │   ├── new/        # New sale form (quantity + rate agreed by phone)
+│   │       │   └── [id]/
+│   │       │       ├── page.tsx      # Sale detail: items, status progression, compliance refs, payments
+│   │       │       └── print/        # Printable sale invoice / delivery challan
+│   │       ├── buyers/         # Businesses JBE sells to (Maharashtra/Gujarat)
+│   │       │   ├── page.tsx    # Buyer list
+│   │       │   ├── new/        # Add buyer
+│   │       │   └── [id]/       # Buyer profile: scrap sold, receivable, history
+│   │       ├── stock/
+│   │       │   ├── page.tsx    # Stock index: Aluminium/Copper/Brass/Other categories
+│   │       │   └── [category]/ # Material-level breakdown within one category
+│   │       └── receipt-print.css  # Shared A4 print styles (purchase voucher + sale invoice)
 │   ├── components/
 │   │   ├── layout/             # Marketing chrome: TopStrip, Navbar, MobileDrawer, Footer, ScrollExtras
 │   │   ├── sections/           # Marketing sections: Hero, Ticker, Stats, About, Materials, Process, ExportBand, Contact
 │   │   ├── ui/                 # Shared primitives: Btn, Kicker, LogoTile, Reveal
 │   │   └── dashboard/          # Dashboard-specific components (all "use client"):
-│   │                           #   LoginForm, NewPurchaseForm, NewCustomerForm,
-│   │                           #   RecordPaymentForm, MarkCompleteButton, PrintButton
+│   │                           #   LoginForm, NewPurchaseForm, NewCustomerForm, NewSaleForm, NewBuyerForm,
+│   │                           #   RecordPaymentForm, RecordSalePaymentForm, MarkCompleteButton,
+│   │                           #   AdvanceSaleStatusButton, SaleComplianceForm, PrintButton
 │   ├── data/
 │   │   └── content.ts          # Single source of truth for all marketing content
 │   ├── hooks/
 │   │   ├── useCountUp.ts       # Count-up animation (DOM mutation — no React re-renders)
 │   │   └── useScrollSpy.ts     # IntersectionObserver active-section tracker
 │   ├── lib/
-│   │   ├── db.ts               # Typed DB access layer — all Supabase queries live here
-│   │   ├── supabase.ts         # Base Supabase client (no Database generic)
-│   │   ├── supabase-browser.ts # Browser client for auth in client components
-│   │   ├── supabase-server.ts  # Server client for auth in middleware
+│   │   ├── db.ts               # Typed DB access layer — createDb(client) factory, all queries live here
+│   │   ├── supabase-browser.ts # Session-aware client for Client Components
+│   │   ├── supabase-server.ts  # Session-aware clients for middleware + Server Components
+│   │   ├── metalCategory.ts    # Groups the material list into Aluminium/Copper/Brass/Other
 │   │   ├── toWords.ts          # Converts rupee amounts to Indian English words
 │   │   └── utils.ts            # cn() classname helper
 │   ├── middleware.ts            # Auth guard: redirects /dashboard/* to /login if no session
@@ -178,16 +194,15 @@ Current client components: `Navbar`, `MobileDrawer`, `ScrollExtras`, `Stats`, `R
 
 ### Operations dashboard: repository pattern
 
-All database access goes through `src/lib/db.ts`. Components never import from `supabase.ts` directly.
+All database access goes through `db.ts`'s `createDb(client)` factory — never a singleton, because Supabase RLS policies are gated on `auth.role() = 'authenticated'`, so every query needs the signed-in user's session attached.
 
 ```
-Client component
-  → db.ts (typed wrapper, all queries here)
-    → supabase.ts (base client, no generics)
-      → Supabase (PostgreSQL)
+Server Component → createSupabaseServerComponent() ─┐
+                                                      ├→ createDb(client) → Supabase (PostgreSQL)
+Client Component → createSupabaseBrowser()          ─┘
 ```
 
-This isolates the `as unknown as` type cast to one file, makes queries easy to test, and means swapping the DB only requires changing `db.ts`.
+This isolates the `as unknown as` type cast to one file, makes queries easy to test, and means swapping the DB only requires changing `db.ts`. Never construct a Supabase client directly in a component — always `createDb()`.
 
 ### CSS isolation strategy
 
@@ -207,11 +222,13 @@ Tailwind CSS 4's PostCSS pipeline drops CSS appended after the main layer in `gl
       → session valid → serve page
 ```
 
-Session is set by Supabase Auth on sign-in and stored in cookies automatically by `@supabase/ssr`. The middleware is the single enforcement point — update only there to change auth behaviour.
+Session is set by Supabase Auth on sign-in and stored in cookies automatically by `@supabase/ssr`. The middleware is the single enforcement point for **page routes** — update only there to change auth behaviour.
 
-### Purchase voucher / print
+Middleware alone doesn't protect the database: the anon/publishable key is public in the client bundle, so Supabase Row Level Security (RLS) policies restrict every table to `auth.role() = 'authenticated'`. This is why `createDb()` needs a session-aware client rather than a plain one — without the user's JWT attached, RLS silently returns zero rows.
 
-`/dashboard/purchases/[id]/print` is a server component that renders an A4-sized HTML receipt. `@media print` CSS hides the sidebar and action buttons, leaving a clean printable document. The `toWords.ts` utility converts the total amount to Indian English words (handles up to 99 crore).
+### Purchase voucher / sale invoice print
+
+`/dashboard/purchases/[id]/print` and `/dashboard/sales/[id]/print` are server components that render an A4-sized HTML document, sharing `receipt-print.css`. `@media print` CSS hides the sidebar and action buttons, leaving a clean printable document. The `toWords.ts` utility converts the total amount to Indian English words (handles up to 99 crore). The sale invoice explicitly states it's a reference document, not a substitute for the GST invoice or government E-way Bill (see §8).
 
 ---
 
@@ -275,13 +292,21 @@ The dashboard at `/dashboard` is an auth-gated internal tool. Access requires si
 
 | Route | What it does |
 |---|---|
-| `/dashboard` | Overview: today's count, pending review, stock by metal, chart |
-| `/dashboard/purchases` | All purchases — sortable, filterable by status |
+| `/dashboard` | Overview: cash position (payables/receivables), stock position by category, recent activity |
+| `/dashboard/purchases` | All purchases — buying side |
 | `/dashboard/purchases/new` | Record a new purchase (customer + metal items) |
 | `/dashboard/purchases/[id]` | Detail: items, payments, mark complete, print |
 | `/dashboard/purchases/[id]/print` | Printable A4 purchase voucher with amount in words |
-| `/dashboard/customers` | Customer directory |
-| `/dashboard/customers/new` | Add a customer |
+| `/dashboard/customers` | Customer directory (scrap sellers) |
+| `/dashboard/customers/[id]` | Customer profile: scrap received (week/month/all-time), account balance |
+| `/dashboard/sales` | All sales — selling side |
+| `/dashboard/sales/new` | Record a new sale (buyer + metal items, quantity/rate agreed by phone) |
+| `/dashboard/sales/[id]` | Detail: items, status progression, compliance reference numbers, payments, print |
+| `/dashboard/sales/[id]/print` | Printable sale invoice / delivery challan |
+| `/dashboard/buyers` | Buyer directory (businesses JBE sells to) |
+| `/dashboard/buyers/[id]` | Buyer profile: scrap sold, receivable balance |
+| `/dashboard/stock` | Stock index: Aluminium / Copper / Brass / Other |
+| `/dashboard/stock/[category]` | Material-level breakdown within one category |
 | `/login` | Sign in (Supabase Auth) |
 
 ### Purchase status flow
@@ -292,9 +317,21 @@ draft  →  (customer reviews paperwork)  →  complete
 
 A purchase starts as **draft** when recorded. After the customer visits, reviews the weighment details and agrees to deductions, click "✓ Mark as Complete" — this triggers an inline confirmation (no `confirm()` dialog) then updates Supabase.
 
+### Sale status flow
+
+```
+quoted  →  dispatched  →  delivered  →  paid
+```
+
+A sale starts as **quoted** once rate and quantity are agreed by phone. Marking **dispatched** requires a vehicle number (the truck has left, and this is the point stock is deducted) — **delivered** and **paid** follow once the buyer confirms receipt and settles.
+
 ### Stock on hand
 
-The overview shows total received weight by metal type, aggregated from all `purchase_items`. This represents inbound stock. Outbound/dispatch tracking is a future phase — when added, "stock on hand" will be inbound minus outbound.
+`/dashboard` and `/dashboard/stock` show **net** stock: total received from `purchase_items`, minus `sale_items` for any sale in `dispatched`/`delivered`/`paid` status (a `quoted` sale hasn't shipped yet, so it doesn't reduce stock). Materials are grouped into 3 categories — Aluminium, Copper, Brass, plus Other — via `src/lib/metalCategory.ts`; update that file if the material list changes.
+
+### Buyer compliance (E-way Bill, GST, TCS)
+
+`sales.invoice_number` and `sales.eway_bill_number` are reference fields, not automated filings — generate the actual GST invoice and government E-way Bill (mandatory above ₹50,000 per consignment) through your accounting tool / the e-way bill portal, then record the numbers on the sale. Scrap sales also attract 1% TCS under Income Tax Act §206C(1) unless the buyer provides Form 27C. Confirm current thresholds and rates with a CA — this is general regulatory awareness baked into the docs, not tax advice enforced by the app.
 
 ### Dev quick login
 

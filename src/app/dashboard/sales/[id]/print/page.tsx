@@ -8,7 +8,6 @@ import "@/app/dashboard/receipt-print.css";
 
 export const dynamic = "force-dynamic";
 
-
 function fmt(n: number) {
   return n.toLocaleString("en-IN", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
 }
@@ -16,34 +15,33 @@ function fmtAmt(n: number) {
   return n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-// Short voucher reference from purchase date + last 6 chars of ID
+// Short voucher reference from sale date + last 6 chars of ID
 function voucherNo(id: string, date: string) {
   const d = date.replace(/-/g, "").slice(2); // e.g. 260722
-  return `PV-${d}-${id.slice(-6).toUpperCase()}`;
+  return `SV-${d}-${id.slice(-6).toUpperCase()}`;
 }
 
-export default async function PrintReceiptPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function SalePrintPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const db = createDb(await createSupabaseServerComponent());
-  const { data: purchase, error } = await db.purchases.get(id);
-  if (error || !purchase) notFound();
+  const { data: sale, error } = await db.sales.get(id);
+  if (error || !sale) notFound();
 
-  const totalAmount = purchase.items.reduce((s, i) => s + (i.amount ?? 0), 0);
-  const totalPaid   = purchase.payments.reduce((s, p) => s + p.amount, 0);
-  const balance     = totalAmount - totalPaid;
+  const totalAmount = sale.items.reduce((s, i) => s + (i.amount ?? 0), 0);
+  const totalPaid = sale.payments.reduce((s, p) => s + p.amount, 0);
+  const balance = totalAmount - totalPaid;
 
-  const voucher = voucherNo(purchase.id, purchase.purchase_date);
+  const voucher = voucherNo(sale.id, sale.sale_date);
 
   return (
     <div className="receipt-shell">
       {/* ── Screen-only action bar ── */}
       <div className="receipt-actions receipt-no-print">
-        <Link href={`/dashboard/purchases/${purchase.id}`} className="dash-btn dash-btn--outline">
-          ← Back to Purchase
+        <Link href={`/dashboard/sales/${sale.id}`} className="dash-btn dash-btn--outline">
+          ← Back to Sale
         </Link>
         <PrintButton />
       </div>
-
 
       {/* ── The receipt paper ── */}
       <div className="receipt-paper" id="receipt">
@@ -70,7 +68,7 @@ export default async function PrintReceiptPage({ params }: { params: Promise<{ i
 
         {/* Title */}
         <div className="receipt-title-band">
-          <div className="receipt-title">Purchase Voucher</div>
+          <div className="receipt-title">Sale Invoice cum Delivery Challan</div>
         </div>
 
         {/* Meta */}
@@ -82,60 +80,74 @@ export default async function PrintReceiptPage({ params }: { params: Promise<{ i
           <div className="receipt-meta-item">
             <span className="receipt-meta-key">Date</span>
             <span className="receipt-meta-val">
-              {new Date(purchase.purchase_date).toLocaleDateString("en-IN", {
+              {new Date(sale.sale_date).toLocaleDateString("en-IN", {
                 day: "2-digit", month: "long", year: "numeric",
               })}
             </span>
           </div>
           <div className="receipt-meta-item">
-            <span className="receipt-meta-key">Party Name</span>
-            <span className="receipt-meta-val">{purchase.customer?.name ?? "—"}</span>
+            <span className="receipt-meta-key">Buyer Name</span>
+            <span className="receipt-meta-val">{sale.buyer?.name ?? "—"}</span>
           </div>
           <div className="receipt-meta-item">
             <span className="receipt-meta-key">Mobile</span>
-            <span className="receipt-meta-val">{purchase.customer?.phone ?? "—"}</span>
+            <span className="receipt-meta-val">{sale.buyer?.phone ?? "—"}</span>
           </div>
-          {purchase.customer?.address && (
+          <div className="receipt-meta-item">
+            <span className="receipt-meta-key">Buyer GSTIN</span>
+            <span className="receipt-meta-val">{sale.buyer?.gstin ?? "—"}</span>
+          </div>
+          <div className="receipt-meta-item">
+            <span className="receipt-meta-key">State</span>
+            <span className="receipt-meta-val">{sale.buyer?.state ?? "—"}</span>
+          </div>
+          {sale.buyer?.address && (
             <div className="receipt-meta-item" style={{ gridColumn: "1 / -1" }}>
               <span className="receipt-meta-key">Address</span>
-              <span className="receipt-meta-val">{purchase.customer.address}</span>
+              <span className="receipt-meta-val">{sale.buyer.address}</span>
             </div>
           )}
+          <div className="receipt-meta-item">
+            <span className="receipt-meta-key">Vehicle No.</span>
+            <span className="receipt-meta-val">{sale.vehicle_number ?? "—"}</span>
+          </div>
+          <div className="receipt-meta-item">
+            <span className="receipt-meta-key">Driver</span>
+            <span className="receipt-meta-val">{sale.driver_name ?? "—"}</span>
+          </div>
+          <div className="receipt-meta-item">
+            <span className="receipt-meta-key">Invoice No.</span>
+            <span className="receipt-meta-val">{sale.invoice_number ?? "—"}</span>
+          </div>
+          <div className="receipt-meta-item">
+            <span className="receipt-meta-key">E-way Bill No.</span>
+            <span className="receipt-meta-val">{sale.eway_bill_number ?? "—"}</span>
+          </div>
         </div>
 
         {/* Items table */}
         <table className="receipt-table">
           <thead>
             <tr>
-              <th style={{ width: "18%" }}>Material</th>
-              <th>Gross Wt (kg)</th>
-              <th>Sacks</th>
-              <th>Deduction (kg)</th>
-              <th>Net Wt (kg)</th>
+              <th style={{ width: "34%" }}>Material</th>
+              <th>Quantity (kg)</th>
               <th>Rate (₹/kg)</th>
-              <th>Timing</th>
               <th>Amount (₹)</th>
             </tr>
           </thead>
           <tbody>
-            {purchase.items.map((item) => (
+            {sale.items.map((item) => (
               <tr key={item.id}>
                 <td>{item.metal_type}</td>
-                <td>{fmt(item.gross_weight)}</td>
-                <td style={{ textAlign: "center" }}>{item.sacks_count ?? 0}</td>
-                <td>{fmt(item.deduction_weight ?? 0)}</td>
-                <td style={{ fontWeight: 700 }}>{fmt(item.net_weight ?? 0)}</td>
+                <td>{fmt(item.quantity)}</td>
                 <td>{fmtAmt(item.rate)}</td>
-                <td style={{ textAlign: "center", fontSize: "0.72rem" }}>
-                  {item.rate_timing === "before" ? "Before" : "After"}
-                </td>
                 <td style={{ fontWeight: 700 }}>₹{fmtAmt(item.amount ?? 0)}</td>
               </tr>
             ))}
           </tbody>
           <tfoot>
             <tr>
-              <td colSpan={7} style={{ textAlign: "right", fontFamily: "var(--f-mono)", fontSize: "0.72rem", letterSpacing: "0.08em", textTransform: "uppercase", paddingRight: "0.75rem" }}>
+              <td colSpan={3} style={{ textAlign: "right", fontFamily: "var(--f-mono)", fontSize: "0.72rem", letterSpacing: "0.08em", textTransform: "uppercase", paddingRight: "0.75rem" }}>
                 Total Payable
               </td>
               <td style={{ fontWeight: 800, fontSize: "1rem" }}>₹{fmtAmt(totalAmount)}</td>
@@ -152,13 +164,13 @@ export default async function PrintReceiptPage({ params }: { params: Promise<{ i
         {/* Payment summary */}
         <div className="receipt-payment-section">
           <div className="receipt-payment-header">Payment Details</div>
-          {purchase.payments.length === 0 ? (
+          {sale.payments.length === 0 ? (
             <div className="receipt-payment-row" style={{ color: "#999" }}>
               <span>No payment recorded</span>
               <span>—</span>
             </div>
           ) : (
-            purchase.payments.map((pay) => (
+            sale.payments.map((pay) => (
               <div key={pay.id} className="receipt-payment-row">
                 <span style={{ textTransform: "capitalize" }}>
                   {pay.payment_type} — {new Date(pay.payment_date).toLocaleDateString("en-IN")}
@@ -175,23 +187,29 @@ export default async function PrintReceiptPage({ params }: { params: Promise<{ i
         </div>
 
         {/* Notes */}
-        {purchase.notes && (
+        {sale.notes && (
           <div className="receipt-notes">
-            <strong>Remarks:</strong> {purchase.notes}
+            <strong>Remarks:</strong> {sale.notes}
           </div>
         )}
+
+        <div className="receipt-notes" style={{ fontStyle: "italic" }}>
+          This document accompanies the consignment for internal record-keeping. It does not replace
+          the GST tax invoice or the government E-way Bill — confirm both are generated separately
+          before dispatch.
+        </div>
 
         {/* Signatures */}
         <div className="receipt-sig-row">
           <div className="receipt-sig-block">
             <div style={{ height: 40 }} />
             <div className="receipt-sig-line" />
-            <div className="receipt-sig-label">Party / Receiver Signature</div>
+            <div className="receipt-sig-label">Buyer / Receiver Signature</div>
           </div>
           <div className="receipt-sig-block">
             <div style={{ height: 40 }} />
             <div className="receipt-sig-line" />
-            <div className="receipt-sig-label">Weigh Operator</div>
+            <div className="receipt-sig-label">Driver / Transporter</div>
           </div>
           <div className="receipt-sig-block">
             <div style={{ height: 40 }} />
@@ -204,7 +222,7 @@ export default async function PrintReceiptPage({ params }: { params: Promise<{ i
         <div className="receipt-footer">
           Jai Bhawani Enterprises · M-61 MIDC Ambad, Nashik 422010 · GST: 27ADGPC2741P1ZE
           <br />
-          This is a computer-generated receipt. Subject to Nashik jurisdiction.
+          This is a computer-generated document. Subject to Nashik jurisdiction.
         </div>
       </div>
     </div>

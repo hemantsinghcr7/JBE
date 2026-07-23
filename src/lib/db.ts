@@ -26,6 +26,13 @@ import type {
   PaymentRow,
   PurchaseWithCustomer,
   PurchaseDetail,
+  BuyerRow,
+  SaleRow,
+  SaleItemRow,
+  SalePaymentRow,
+  SaleWithBuyer,
+  SaleDetail,
+  SaleStatus,
 } from "@/types/database";
 
 export function createDb(client: SupabaseClient) {
@@ -207,6 +214,216 @@ export function createDb(client: SupabaseClient) {
       },
     },
 
+    // ── Buyers ────────────────────────────────────────────────────────────
+    buyers: {
+      list: async () => {
+        const { data, error } = await client.from("buyers").select("*").order("name");
+        return { data: (data ?? []) as BuyerRow[], error };
+      },
+
+      get: async (id: string) => {
+        const { data, error } = await client.from("buyers").select("*").eq("id", id).single();
+        return { data: data as BuyerRow | null, error };
+      },
+
+      insert: async (row: { name: string; phone?: string | null; address?: string | null; state?: string | null; gstin?: string | null }) => {
+        const { error } = await client.from("buyers").insert(row as unknown as object);
+        return { error };
+      },
+
+      // Scrap sold (kg) this week/month/all-time, plus receivable totals —
+      // powers the buyer profile page.
+      summary: async (buyerId: string): Promise<{ data: BuyerSummary; error: unknown }> => {
+        const empty: BuyerSummary = {
+          weekKg: 0,
+          monthKg: 0,
+          allTimeKg: 0,
+          totalValue: 0,
+          totalPaid: 0,
+          outstanding: 0,
+        };
+
+        const { data: saleRows, error: sErr } = await client
+          .from("sales")
+          .select("id, sale_date")
+          .eq("buyer_id", buyerId);
+        if (sErr) return { data: empty, error: sErr };
+
+        const sales = (saleRows ?? []) as Pick<SaleRow, "id" | "sale_date">[];
+        const saleIds = sales.map((s) => s.id);
+        if (saleIds.length === 0) return { data: empty, error: null };
+
+        const [{ data: itemRows }, { data: paymentRows }] = await Promise.all([
+          client.from("sale_items").select("sale_id, quantity, amount").in("sale_id", saleIds),
+          client.from("sale_payments").select("sale_id, amount").in("sale_id", saleIds),
+        ]);
+
+        const dateById = new Map(sales.map((s) => [s.id, s.sale_date]));
+        const now = new Date();
+        const weekAgo = new Date(now.getTime() - 7 * 86400000).toISOString().slice(0, 10);
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+
+        let weekKg = 0, monthKg = 0, allTimeKg = 0, totalValue = 0;
+        for (const item of (itemRows ?? []) as { sale_id: string; quantity: number | null; amount: number | null }[]) {
+          const date = dateById.get(item.sale_id);
+          const kg = item.quantity ?? 0;
+          allTimeKg += kg;
+          totalValue += item.amount ?? 0;
+          if (date && date >= monthStart) monthKg += kg;
+          if (date && date >= weekAgo) weekKg += kg;
+        }
+
+        const totalPaid = ((paymentRows ?? []) as { amount: number }[]).reduce((s, p) => s + p.amount, 0);
+        const outstanding = Math.max(0, totalValue - totalPaid);
+
+        return { data: { weekKg, monthKg, allTimeKg, totalValue, totalPaid, outstanding }, error: null };
+      },
+    },
+
+    // ── Sales ─────────────────────────────────────────────────────────────
+    sales: {
+      list: async () => {
+        const { data, error } = await client
+          .from("sales")
+          .select("*, buyer:buyers(name)")
+          .order("sale_date", { ascending: false })
+          .order("created_at", { ascending: false });
+        return { data: (data ?? []) as SaleWithBuyer[], error };
+      },
+
+      byBuyer: async (buyerId: string) => {
+        const { data, error } = await client
+          .from("sales")
+          .select("*")
+          .eq("buyer_id", buyerId)
+          .order("sale_date", { ascending: false });
+        return { data: (data ?? []) as SaleRow[], error };
+      },
+
+      get: async (id: string) => {
+        const { data, error } = await client
+          .from("sales")
+          .select("*, buyer:buyers(*), items:sale_items(*), payments:sale_payments(*)")
+          .eq("id", id)
+          .single();
+        return { data: data as SaleDetail | null, error };
+      },
+
+      insert: async (row: {
+        buyer_id: string;
+        sale_date?: string;
+        status?: SaleStatus;
+        notes?: string | null;
+      }) => {
+        const { data, error } = await client
+          .from("sales")
+          .insert(row as unknown as object)
+          .select()
+          .single();
+        return { data: data as SaleRow | null, error };
+      },
+
+      updateStatus: async (
+        id: string,
+        status: SaleStatus,
+        extra?: { vehicle_number?: string | null; driver_name?: string | null }
+      ) => {
+        const { error } = await client
+          .from("sales")
+          .update({ status, ...extra } as unknown as object)
+          .eq("id", id);
+        return { error };
+      },
+
+      updateCompliance: async (
+        id: string,
+        fields: { invoice_number?: string | null; eway_bill_number?: string | null }
+      ) => {
+        const { error } = await client.from("sales").update(fields as unknown as object).eq("id", id);
+        return { error };
+      },
+
+      recent: async (limit: number) => {
+        const { data, error } = await client
+          .from("sales")
+          .select("*, buyer:buyers(name), items:sale_items(amount)")
+          .order("sale_date", { ascending: false })
+          .order("created_at", { ascending: false })
+          .limit(limit);
+        return { data: (data ?? []) as SaleWithBuyer[], error };
+      },
+
+      // Receivables position for the Overview page: money buyers still owe,
+      // collected today, and sale value this week.
+      financialSummary: async (): Promise<{ data: SalesFinancialSummary; error: unknown }> => {
+        const empty: SalesFinancialSummary = { outstanding: 0, collectedToday: 0, valueThisWeek: 0 };
+
+        const [{ data: saleRows, error: sErr }, { data: itemRows }, { data: paymentRows }] = await Promise.all([
+          client.from("sales").select("id, sale_date"),
+          client.from("sale_items").select("sale_id, amount"),
+          client.from("sale_payments").select("sale_id, amount, payment_date"),
+        ]);
+        if (sErr) return { data: empty, error: sErr };
+
+        const sales = (saleRows ?? []) as Pick<SaleRow, "id" | "sale_date">[];
+        const dateById = new Map(sales.map((s) => [s.id, s.sale_date]));
+
+        const amountBySale = new Map<string, number>();
+        for (const item of (itemRows ?? []) as { sale_id: string; amount: number | null }[]) {
+          amountBySale.set(item.sale_id, (amountBySale.get(item.sale_id) ?? 0) + (item.amount ?? 0));
+        }
+
+        const today = new Date().toISOString().slice(0, 10);
+        const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+
+        const paidBySale = new Map<string, number>();
+        let collectedToday = 0;
+        for (const pay of (paymentRows ?? []) as { sale_id: string; amount: number; payment_date: string }[]) {
+          paidBySale.set(pay.sale_id, (paidBySale.get(pay.sale_id) ?? 0) + pay.amount);
+          if (pay.payment_date === today) collectedToday += pay.amount;
+        }
+
+        let outstanding = 0, valueThisWeek = 0;
+        for (const [saleId, amount] of amountBySale) {
+          const paid = paidBySale.get(saleId) ?? 0;
+          outstanding += Math.max(0, amount - paid);
+          const date = dateById.get(saleId);
+          if (date && date >= weekAgo) valueThisWeek += amount;
+        }
+
+        return { data: { outstanding, collectedToday, valueThisWeek }, error: null };
+      },
+    },
+
+    // ── Sale items ────────────────────────────────────────────────────────
+    saleItems: {
+      insertMany: async (
+        rows: {
+          sale_id: string;
+          metal_type: SaleItemRow["metal_type"];
+          quantity: number;
+          rate: number;
+        }[]
+      ) => {
+        const { error } = await client.from("sale_items").insert(rows as unknown as object[]);
+        return { error };
+      },
+    },
+
+    // ── Sale payments ─────────────────────────────────────────────────────
+    salePayments: {
+      insert: async (row: {
+        sale_id: string;
+        amount: number;
+        payment_type: SalePaymentRow["payment_type"];
+        payment_date?: string;
+        notes?: string | null;
+      }) => {
+        const { error } = await client.from("sale_payments").insert(row as unknown as object);
+        return { error };
+      },
+    },
+
     // ── Purchase items ───────────────────────────────────────────────────
     purchaseItems: {
       insertMany: async (
@@ -227,19 +444,32 @@ export function createDb(client: SupabaseClient) {
 
     // ── Stock ─────────────────────────────────────────────────────────────
     stock: {
-      // Returns total received net weight (kg) grouped by metal type, across all purchases.
-      // "Stock" here means total inbound — we have no dispatch table yet.
+      // Net weight on hand (kg) grouped by metal type: total received from
+      // purchases, minus sales that have actually left the warehouse
+      // (dispatched, delivered, or paid — a "quoted" sale hasn't shipped yet,
+      // so it doesn't reduce stock).
       byMetal: async (): Promise<{ data: StockByMetal; error: unknown }> => {
-        const { data, error } = await client.from("purchase_items").select("metal_type, net_weight");
-
-        if (error || !data) return { data: {}, error };
+        const [{ data: purchaseData, error: pErr }, { data: saleData, error: sErr }] = await Promise.all([
+          client.from("purchase_items").select("metal_type, net_weight"),
+          client.from("sale_items").select("metal_type, quantity, sale:sales(status)"),
+        ]);
+        if (pErr) return { data: {}, error: pErr };
 
         const totals: StockByMetal = {};
-        for (const row of data as { metal_type: string; net_weight: number | null }[]) {
+        for (const row of (purchaseData ?? []) as { metal_type: string; net_weight: number | null }[]) {
           const key = row.metal_type ?? "Other";
           totals[key] = (totals[key] ?? 0) + (row.net_weight ?? 0);
         }
-        return { data: totals, error: null };
+        for (const row of (saleData ?? []) as unknown as {
+          metal_type: string;
+          quantity: number | null;
+          sale: { status: SaleStatus } | null;
+        }[]) {
+          if (!row.sale || row.sale.status === "quoted") continue;
+          const key = row.metal_type ?? "Other";
+          totals[key] = (totals[key] ?? 0) - (row.quantity ?? 0);
+        }
+        return { data: totals, error: sErr ?? null };
       },
     },
 
@@ -276,4 +506,12 @@ export type CustomerSummary = {
   totalValue: number;
   totalPaid: number;
   outstanding: number;
+};
+
+export type BuyerSummary = CustomerSummary;
+
+export type SalesFinancialSummary = {
+  outstanding: number;
+  collectedToday: number;
+  valueThisWeek: number;
 };

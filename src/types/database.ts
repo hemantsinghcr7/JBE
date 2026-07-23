@@ -38,6 +38,7 @@ export type MetalType =
 export type PurchaseStatus = "draft" | "complete";
 export type PaymentType = "cash" | "credit";
 export type RateTiming = "before" | "after";
+export type SaleStatus = "quoted" | "dispatched" | "delivered" | "paid";
 
 // ── DB row shapes (columns only, no join fields) ──────────────────────────────
 
@@ -82,6 +83,51 @@ export interface PaymentRow {
   created_at: string;
 }
 
+// ── Buyers (sale-side counterparties) ─────────────────────────────────────────
+
+export interface BuyerRow {
+  id: string;
+  name: string;
+  phone: string | null;
+  address: string | null;
+  state: string | null; // e.g. "Maharashtra", "Gujarat" — free text, not a strict enum
+  gstin: string | null;
+  created_at: string;
+}
+
+export interface SaleRow {
+  id: string;
+  buyer_id: string;
+  sale_date: string;
+  status: SaleStatus;
+  vehicle_number: string | null;
+  driver_name: string | null;
+  invoice_number: string | null;
+  eway_bill_number: string | null;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface SaleItemRow {
+  id: string;
+  sale_id: string;
+  metal_type: MetalType;
+  quantity: number; // kg, agreed on the call
+  rate: number;
+  amount: number; // generated always: quantity * rate
+  created_at: string;
+}
+
+export interface SalePaymentRow {
+  id: string;
+  sale_id: string;
+  amount: number;
+  payment_type: PaymentType;
+  payment_date: string;
+  notes: string | null;
+  created_at: string;
+}
+
 // ── Enriched types used in the UI (rows + joined relations) ───────────────────
 
 export type PurchaseWithCustomer = PurchaseRow & {
@@ -93,6 +139,17 @@ export type PurchaseDetail = PurchaseRow & {
   customer: CustomerRow | null;
   items: PurchaseItemRow[];
   payments: PaymentRow[];
+};
+
+export type SaleWithBuyer = SaleRow & {
+  buyer: Pick<BuyerRow, "name"> | null;
+  items?: Pick<SaleItemRow, "amount">[];
+};
+
+export type SaleDetail = SaleRow & {
+  buyer: BuyerRow | null;
+  items: SaleItemRow[];
+  payments: SalePaymentRow[];
 };
 
 // ── Supabase Database generic ─────────────────────────────────────────────────
@@ -156,6 +213,65 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<PaymentRow>;
+        Relationships: GenericRelationship[];
+      };
+      buyers: {
+        Row: BuyerRow;
+        Insert: {
+          id?: string;
+          name: string;
+          phone?: string | null;
+          address?: string | null;
+          state?: string | null;
+          gstin?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<BuyerRow>;
+        Relationships: GenericRelationship[];
+      };
+      sales: {
+        Row: SaleRow;
+        Insert: {
+          id?: string;
+          buyer_id: string;
+          sale_date?: string;
+          status?: SaleStatus;
+          vehicle_number?: string | null;
+          driver_name?: string | null;
+          invoice_number?: string | null;
+          eway_bill_number?: string | null;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<SaleRow>;
+        Relationships: GenericRelationship[];
+      };
+      sale_items: {
+        Row: SaleItemRow;
+        Insert: {
+          id?: string;
+          sale_id: string;
+          metal_type: MetalType;
+          quantity: number;
+          // amount is a generated column — excluded from Insert
+          rate: number;
+          created_at?: string;
+        };
+        Update: Partial<Omit<SaleItemRow, "amount">>;
+        Relationships: GenericRelationship[];
+      };
+      sale_payments: {
+        Row: SalePaymentRow;
+        Insert: {
+          id?: string;
+          sale_id: string;
+          amount: number;
+          payment_type: PaymentType;
+          payment_date?: string;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<SalePaymentRow>;
         Relationships: GenericRelationship[];
       };
     };

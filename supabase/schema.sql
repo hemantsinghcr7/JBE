@@ -68,11 +68,85 @@ create table if not exists payments (
   created_at    timestamptz not null default now()
 );
 
+-- ─── Buyers ───────────────────────────────────────────────────────────────────
+-- Businesses JBE sells processed scrap to — mostly Maharashtra and Gujarat.
+create table if not exists buyers (
+  id          uuid primary key default gen_random_uuid(),
+  name        text not null,
+  phone       text,
+  address     text,
+  state       text,   -- e.g. "Maharashtra", "Gujarat" — free text, not a strict enum
+  gstin       text,
+  created_at  timestamptz not null default now()
+);
+
+-- ─── Sales ──────────────────────────────────────────────────────────────────
+-- One row per outbound dispatch to a buyer. Rate and quantity are agreed by
+-- phone before the truck is sent; vehicle/driver are filled in at dispatch.
+-- status: quoted (agreed on the call) → dispatched (truck has left, stock
+-- deducted) → delivered (buyer has received it) → paid (settled).
+create table if not exists sales (
+  id                uuid primary key default gen_random_uuid(),
+  buyer_id          uuid not null references buyers(id),
+  sale_date         date not null default current_date,
+  status            text not null default 'quoted' check (status in ('quoted', 'dispatched', 'delivered', 'paid')),
+  vehicle_number    text,
+  driver_name       text,
+  -- Reference numbers only — the actual GST invoice and government E-way
+  -- Bill are generated outside this app (accounting tool / e-way bill
+  -- portal); these fields just keep the record traceable.
+  invoice_number    text,
+  eway_bill_number  text,
+  notes             text,
+  created_at        timestamptz not null default now()
+);
+
+-- ─── Sale Items ───────────────────────────────────────────────────────────────
+-- One row per metal type within a sale. Quantity/rate are what was agreed by
+-- phone, not a multi-step weighment like purchase_items.
+create table if not exists sale_items (
+  id           uuid primary key default gen_random_uuid(),
+  sale_id      uuid not null references sales(id) on delete cascade,
+  metal_type   text not null check (metal_type in (
+                 'Alternator/Starter Motor',
+                 'Aluminium Cast','Aluminium Cuttings','Aluminium Domestic',
+                 'Aluminium Extruded','Aluminium Wheels',
+                 'Brass – Clean','Brass – Contaminated',
+                 'Copper – Burnt/Tinned','Copper Candy','Copper Domestic','Copper Millberry',
+                 'Electric Fridge Compressor','Electric Motors Large','Electric Motors Small',
+                 'Insulated Copper Wire – Low Grade','Insulated Copper Wire – Medium Grade',
+                 'Radiator – Brass/Copper Clean','Radiator – Brass/Copper Contaminated',
+                 'Radiators – Aluminium/Copper 5% Contamination','Radiators – Aluminium/Copper Clean',
+                 'Other'
+               )),
+  quantity     numeric(10, 3) not null check (quantity >= 0), -- kg
+  rate         numeric(10, 2) not null check (rate >= 0),
+  amount       numeric(12, 2) generated always as (quantity * rate) stored,
+  created_at   timestamptz not null default now()
+);
+
+-- ─── Sale Payments ────────────────────────────────────────────────────────────
+-- A separate table from `payments` (which is purchase-only) so the buy-side
+-- and sell-side cash flows never share a foreign key.
+create table if not exists sale_payments (
+  id            uuid primary key default gen_random_uuid(),
+  sale_id       uuid not null references sales(id) on delete cascade,
+  amount        numeric(12, 2) not null check (amount > 0),
+  payment_type  text not null check (payment_type in ('cash', 'credit')),
+  payment_date  date not null default current_date,
+  notes         text,
+  created_at    timestamptz not null default now()
+);
+
 -- ─── Indexes ──────────────────────────────────────────────────────────────────
 create index if not exists purchases_customer_id_idx  on purchases(customer_id);
 create index if not exists purchases_date_idx         on purchases(purchase_date desc);
 create index if not exists purchase_items_purchase_idx on purchase_items(purchase_id);
 create index if not exists payments_purchase_idx      on payments(purchase_id);
+create index if not exists sales_buyer_id_idx         on sales(buyer_id);
+create index if not exists sales_date_idx             on sales(sale_date desc);
+create index if not exists sale_items_sale_idx        on sale_items(sale_id);
+create index if not exists sale_payments_sale_idx     on sale_payments(sale_id);
 
 -- ─── Row Level Security ───────────────────────────────────────────────────────
 -- All four tables are readable/writable only by a signed-in Supabase Auth
@@ -89,6 +163,10 @@ alter table customers      enable row level security;
 alter table purchases      enable row level security;
 alter table purchase_items enable row level security;
 alter table payments       enable row level security;
+alter table buyers         enable row level security;
+alter table sales          enable row level security;
+alter table sale_items     enable row level security;
+alter table sale_payments  enable row level security;
 
 create policy "authenticated only" on customers
   for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
@@ -97,4 +175,12 @@ create policy "authenticated only" on purchases
 create policy "authenticated only" on purchase_items
   for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 create policy "authenticated only" on payments
+  for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "authenticated only" on buyers
+  for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "authenticated only" on sales
+  for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "authenticated only" on sale_items
+  for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+create policy "authenticated only" on sale_payments
   for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
