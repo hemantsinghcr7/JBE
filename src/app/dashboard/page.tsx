@@ -1,39 +1,35 @@
 import { createDb } from "@/lib/db";
 import { createSupabaseServerComponent } from "@/lib/supabase-server";
+import { CATEGORY_ORDER, CATEGORY_COLORS, CATEGORY_SLUGS, groupStockByCategory } from "@/lib/metalCategory";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
-function metalColor(type: string): string {
-  if (type.startsWith("Aluminium") || type.startsWith("Radiators – Aluminium")) return "#a8c0e8";
-  if (type.startsWith("Copper") || type.startsWith("Insulated Copper")) return "#c87941";
-  if (type.startsWith("Brass") || type.startsWith("Radiator – Brass")) return "#c9a84c";
-  return "#8a9bb0";
+function fmtRupees(n: number) {
+  return n.toLocaleString("en-IN", { maximumFractionDigits: 0 });
 }
 
-async function getStats() {
+async function getOverviewData() {
   const db = createDb(await createSupabaseServerComponent());
-  const [p, c, s] = await Promise.all([
-    db.purchases.stats(),
-    db.customers.list(),
+  const [financials, stock, customers, recent] = await Promise.all([
+    db.purchases.financialSummary(),
     db.stock.byMetal(),
+    db.customers.list(),
+    db.purchases.recent(5),
   ]);
-  const today = new Date().toISOString().slice(0, 10);
-  const rows = p.data;
   return {
-    total: rows.length,
-    pendingReview: rows.filter((r) => r.status === "draft").length,
-    todayCount: rows.filter((r) => r.purchase_date === today).length,
-    customerCount: c.data.length,
-    stock: s.data,
+    financials: financials.data,
+    stock: stock.data,
+    customerCount: customers.data.length,
+    recent: recent.data,
   };
 }
 
 export default async function DashboardPage() {
-  const stats = await getStats();
+  const { financials, stock, customerCount, recent } = await getOverviewData();
 
-  const stockEntries = Object.entries(stats.stock).sort((a, b) => a[0].localeCompare(b[0]));
-  const totalStock = stockEntries.reduce((sum, [, v]) => sum + v, 0);
+  const groups = groupStockByCategory(stock);
+  const totalStock = CATEGORY_ORDER.reduce((sum, cat) => sum + groups[cat].total, 0);
 
   return (
     <div className="dash-page">
@@ -44,49 +40,93 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
-      {/* ── Stats ── */}
-      <div className="dash-stat-grid">
-        <div className="dash-stat-card">
-          <span className="dash-stat-label">Today</span>
-          <span className="dash-stat-value">{stats.todayCount}</span>
-          <span className="dash-stat-sub">purchases recorded</span>
+      <div className="dash-position-grid">
+        {/* ── Cash position ── */}
+        <div className="dash-position-col">
+          <div className="dash-position-col-label">Cash Position</div>
+          <div className="dash-ledger-primary">
+            <span className="dash-ledger-label">Outstanding to Customers</span>
+            <span className="dash-ledger-value" style={{ color: financials.outstanding > 0 ? "var(--red)" : "var(--ink)" }}>
+              ₹{fmtRupees(financials.outstanding)}
+            </span>
+          </div>
+          <div className="dash-ledger-row">
+            <span>Paid Today</span>
+            <span>₹{fmtRupees(financials.paidToday)}</span>
+          </div>
+          <div className="dash-ledger-row">
+            <span>Purchase Value — This Week</span>
+            <span>₹{fmtRupees(financials.valueThisWeek)}</span>
+          </div>
+          <div className="dash-ledger-row">
+            <span>Avg. Purchase Size</span>
+            <span>₹{fmtRupees(financials.avgPurchaseSize)}</span>
+          </div>
         </div>
-        <Link href="/dashboard/purchases?status=draft" className="dash-stat-card dash-stat-card--link">
-          <span className="dash-stat-label">Pending Review</span>
-          <span className={`dash-stat-value${stats.pendingReview > 0 ? " dash-stat-value--red" : ""}`}>
-            {stats.pendingReview}
-          </span>
-          <span className="dash-stat-sub">awaiting customer sign-off</span>
-        </Link>
-        <div className="dash-stat-card">
-          <span className="dash-stat-label">All Time</span>
-          <span className="dash-stat-value">{stats.total}</span>
-          <span className="dash-stat-sub">purchases</span>
-        </div>
-        <div className="dash-stat-card">
-          <span className="dash-stat-label">Customers</span>
-          <span className="dash-stat-value">{stats.customerCount}</span>
-          <span className="dash-stat-sub">on record</span>
+
+        {/* ── Stock position ── */}
+        <div className="dash-position-col">
+          <div className="dash-position-col-label">Stock Position — {totalStock.toLocaleString("en-IN")} kg</div>
+          {totalStock === 0 ? (
+            <p style={{ color: "var(--ink-50)", fontSize: "0.85rem" }}>No stock data yet.</p>
+          ) : (
+            <div className="dash-category-bars">
+              {CATEGORY_ORDER.filter((cat) => groups[cat].total > 0).map((cat) => {
+                const pct = totalStock > 0 ? (groups[cat].total / totalStock) * 100 : 0;
+                return (
+                  <Link key={cat} href={`/dashboard/stock/${CATEGORY_SLUGS[cat]}`} className="dash-category-bar-row">
+                    <span className="dash-category-bar-name">{cat}</span>
+                    <div className="dash-category-bar-track">
+                      <div className="dash-category-bar-fill" style={{ width: `${pct.toFixed(1)}%`, background: CATEGORY_COLORS[cat] }} />
+                    </div>
+                    <span className="dash-category-bar-val">{groups[cat].total.toLocaleString("en-IN")} kg</span>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+          <div className="dash-position-note">{customerCount} customer{customerCount === 1 ? "" : "s"} on record</div>
         </div>
       </div>
 
-      {/* ── Stock levels ── */}
-      <div className="dash-section-label" style={{ marginTop: "1.75rem" }}>Stock on Hand</div>
-      {stockEntries.length === 0 ? (
-        <p style={{ color: "var(--ink-50)", fontSize: "0.85rem" }}>No stock data yet.</p>
+      {/* ── Recent activity ── */}
+      <div className="dash-section-label">Recent Activity</div>
+      {recent.length === 0 ? (
+        <p style={{ color: "var(--ink-50)", fontSize: "0.85rem", marginBottom: "1.75rem" }}>No purchases recorded yet.</p>
       ) : (
-        <div className="dash-stock-grid">
-          {stockEntries.map(([metal, kg]) => (
-            <Link key={metal} href="/dashboard/stock" className="dash-stock-card">
-              <span className="dash-stock-symbol" style={{ color: metalColor(metal), fontSize: "0.7rem" }}>{metal}</span>
-              <span className="dash-stock-weight">{kg.toLocaleString("en-IN")} kg</span>
-            </Link>
-          ))}
-        </div>
+        <table className="dash-table" style={{ marginBottom: "1.75rem" }}>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Customer</th>
+              <th style={{ textAlign: "right" }}>Amount</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {recent.map((p) => {
+              const total = (p.items ?? []).reduce((s, i) => s + (i.amount ?? 0), 0);
+              return (
+                <tr key={p.id}>
+                  <td className="dash-mono">{p.purchase_date}</td>
+                  <td className="dash-table-name">{p.customer?.name ?? "—"}</td>
+                  <td style={{ textAlign: "right" }} className="dash-mono">₹{fmtRupees(total)}</td>
+                  <td>
+                    <span className={`dash-badge dash-badge--${p.status}`}>{p.status}</span>
+                  </td>
+                  <td>
+                    <Link href={`/dashboard/purchases/${p.id}`} className="dash-table-link">View →</Link>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       )}
 
       {/* ── Quick actions ── */}
-      <div className="dash-section-label" style={{ marginTop: "1.75rem" }}>Quick Actions</div>
+      <div className="dash-section-label">Quick Actions</div>
       <div className="dash-quick-links">
         <Link href="/dashboard/purchases/new" className="dash-quick-link">
           <span className="dash-quick-icon">+</span>
@@ -101,31 +141,6 @@ export default async function DashboardPage() {
           <span>Manage customers</span>
         </Link>
       </div>
-
-      {/* ── Stock chart ── */}
-      {stockEntries.length > 0 && (
-        <>
-          <div className="dash-section-label" style={{ marginTop: "1.75rem" }}>Stock Breakdown</div>
-          <div className="dash-chart-wrap">
-            {stockEntries.map(([metal, kg]) => {
-              const pct = totalStock > 0 ? (kg / totalStock) * 100 : 0;
-              return (
-                <div key={metal} className="dash-chart-row">
-                  <span className="dash-chart-label">{metal}</span>
-                  <div className="dash-chart-track">
-                    <div className="dash-chart-bar" style={{ width: `${pct.toFixed(1)}%`, background: metalColor(metal) }} />
-                  </div>
-                  <span className="dash-chart-pct">{pct.toFixed(0)}%</span>
-                  <span className="dash-chart-val">{kg.toLocaleString("en-IN")} kg</span>
-                </div>
-              );
-            })}
-            <p className="dash-chart-note">
-              Total on hand: <b>{totalStock.toLocaleString("en-IN")} kg</b> across all metals
-            </p>
-          </div>
-        </>
-      )}
     </div>
   );
 }

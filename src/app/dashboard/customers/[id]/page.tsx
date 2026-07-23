@@ -9,12 +9,16 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
   const { id } = await params;
   const db = createDb(await createSupabaseServerComponent());
 
-  const [{ data: customer, error }, { data: customerPurchases }] = await Promise.all([
+  const [{ data: customer, error }, { data: customerPurchases }, { data: summary }] = await Promise.all([
     db.customers.get(id),
     db.purchases.byCustomer(id),
+    db.customers.summary(id),
   ]);
 
   if (error || !customer) notFound();
+
+  const fmtKg = (n: number) => n.toLocaleString("en-IN", { maximumFractionDigits: 1 });
+  const fmtRupees = (n: number) => n.toLocaleString("en-IN", { maximumFractionDigits: 0 });
 
   return (
     <div className="dash-page">
@@ -41,6 +45,40 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
           <span className="dash-meta-label">Customer Since</span>
           <span className="dash-meta-value">
             {new Date(customer.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })}
+          </span>
+        </div>
+      </div>
+
+      <div className="dash-section-label" style={{ marginTop: "1.75rem" }}>Scrap Received</div>
+      <div className="dash-stat-grid">
+        <div className="dash-stat-card">
+          <span className="dash-stat-label">This Week</span>
+          <span className="dash-stat-value">{fmtKg(summary.weekKg)}<small style={{ fontSize: "0.9rem" }}> kg</small></span>
+        </div>
+        <div className="dash-stat-card">
+          <span className="dash-stat-label">This Month</span>
+          <span className="dash-stat-value">{fmtKg(summary.monthKg)}<small style={{ fontSize: "0.9rem" }}> kg</small></span>
+        </div>
+        <div className="dash-stat-card">
+          <span className="dash-stat-label">All Time</span>
+          <span className="dash-stat-value">{fmtKg(summary.allTimeKg)}<small style={{ fontSize: "0.9rem" }}> kg</small></span>
+        </div>
+      </div>
+
+      <div className="dash-section-label" style={{ marginTop: "1.75rem" }}>Account</div>
+      <div className="dash-stat-grid">
+        <div className="dash-stat-card">
+          <span className="dash-stat-label">Total Purchase Value</span>
+          <span className="dash-stat-value">₹{fmtRupees(summary.totalValue)}</span>
+        </div>
+        <div className="dash-stat-card">
+          <span className="dash-stat-label">Paid</span>
+          <span className="dash-stat-value">₹{fmtRupees(summary.totalPaid)}</span>
+        </div>
+        <div className="dash-stat-card">
+          <span className="dash-stat-label">Outstanding</span>
+          <span className={`dash-stat-value${summary.outstanding > 0 ? " dash-stat-value--red" : ""}`}>
+            ₹{fmtRupees(summary.outstanding)}
           </span>
         </div>
       </div>

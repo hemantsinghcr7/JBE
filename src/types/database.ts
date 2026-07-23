@@ -86,6 +86,7 @@ export interface PaymentRow {
 
 export type PurchaseWithCustomer = PurchaseRow & {
   customer: Pick<CustomerRow, "name"> | null;
+  items?: Pick<PurchaseItemRow, "amount">[];
 };
 
 export type PurchaseDetail = PurchaseRow & {

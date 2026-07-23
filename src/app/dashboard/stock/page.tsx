@@ -1,22 +1,16 @@
 import { createDb } from "@/lib/db";
 import { createSupabaseServerComponent } from "@/lib/supabase-server";
+import { CATEGORY_ORDER, CATEGORY_COLORS, CATEGORY_SLUGS, groupStockByCategory } from "@/lib/metalCategory";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
-
-function metalColor(type: string): string {
-  if (type.startsWith("Aluminium") || type.startsWith("Radiators – Aluminium")) return "#a8c0e8";
-  if (type.startsWith("Copper") || type.startsWith("Insulated Copper")) return "#c87941";
-  if (type.startsWith("Brass") || type.startsWith("Radiator – Brass")) return "#c9a84c";
-  return "#8a9bb0";
-}
 
 export default async function StockPage() {
   const db = createDb(await createSupabaseServerComponent());
   const { data: stock } = await db.stock.byMetal();
 
-  const entries = Object.entries(stock).sort((a, b) => b[1] - a[1]);
-  const total = entries.reduce((sum, [, v]) => sum + v, 0);
+  const groups = groupStockByCategory(stock);
+  const total = CATEGORY_ORDER.reduce((sum, cat) => sum + groups[cat].total, 0);
 
   return (
     <div className="dash-page">
@@ -28,49 +22,25 @@ export default async function StockPage() {
       </div>
 
       <p style={{ color: "var(--ink-50)", fontSize: "0.85rem", marginBottom: "1.5rem" }}>
-        Total received weight by material, aggregated from all recorded purchases. This is inbound
-        stock only — dispatch/sales tracking is planned for a future phase.
+        {total.toLocaleString("en-IN")} kg total, received across all purchases. This is inbound stock
+        only — dispatch/sales tracking is planned for a future phase. Click a category for the
+        material-level breakdown.
       </p>
 
-      {entries.length === 0 ? (
-        <p style={{ color: "var(--ink-50)", fontSize: "0.85rem" }}>No stock data yet.</p>
-      ) : (
-        <table className="dash-table">
-          <thead>
-            <tr>
-              <th>Material</th>
-              <th style={{ textAlign: "right" }}>Net Weight (kg)</th>
-              <th style={{ textAlign: "right" }}>Share</th>
-            </tr>
-          </thead>
-          <tbody>
-            {entries.map(([metal, kg]) => {
-              const pct = total > 0 ? (kg / total) * 100 : 0;
-              return (
-                <tr key={metal}>
-                  <td>
-                    <span style={{ color: metalColor(metal), fontWeight: 700, marginRight: "0.5rem" }}>■</span>
-                    {metal}
-                  </td>
-                  <td style={{ textAlign: "right" }} className="dash-mono">{kg.toLocaleString("en-IN")}</td>
-                  <td style={{ textAlign: "right" }} className="dash-mono">{pct.toFixed(1)}%</td>
-                </tr>
-              );
-            })}
-          </tbody>
-          <tfoot>
-            <tr className="dash-table-total-row">
-              <td style={{ fontFamily: "var(--f-mono)", fontSize: "0.75rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-50)" }}>
-                Total
-              </td>
-              <td style={{ textAlign: "right" }} className="dash-mono">
-                <strong>{total.toLocaleString("en-IN")} kg</strong>
-              </td>
-              <td></td>
-            </tr>
-          </tfoot>
-        </table>
-      )}
+      <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+        {CATEGORY_ORDER.filter((cat) => groups[cat].total > 0).map((cat) => {
+          const preview = groups[cat].materials.slice(0, 3).map((m) => m.name).join(" · ");
+          return (
+            <Link key={cat} href={`/dashboard/stock/${CATEGORY_SLUGS[cat]}`} className="dash-category-card">
+              <div className="dash-category-card-head">
+                <span className="dash-category-card-name" style={{ color: CATEGORY_COLORS[cat] }}>{cat}</span>
+                <span className="dash-category-card-total">{groups[cat].total.toLocaleString("en-IN")} kg</span>
+              </div>
+              <div className="dash-category-card-preview">{preview}</div>
+            </Link>
+          );
+        })}
+      </div>
     </div>
   );
 }
