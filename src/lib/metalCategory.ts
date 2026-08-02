@@ -15,10 +15,10 @@ export const CATEGORY_SLUGS: Record<MetalCategory, string> = {
 };
 
 export const CATEGORY_COLORS: Record<MetalCategory, string> = {
-  Aluminium: "#7fa3d6",
-  Copper: "#c07a45",
-  Brass: "#c2a24e",
-  Other: "#8a9bb0",
+  Aluminium: "#6E93CE",
+  Copper: "#C9743E",
+  Brass: "#C2A038",
+  Other: "#8792A8",
 };
 
 export function categorySlugToName(slug: string): MetalCategory | null {

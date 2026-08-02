@@ -185,27 +185,27 @@ export default async function DashboardPage() {
       <div className="dash-section-label">Quick Actions</div>
       <div className="dash-quick-links">
         <Link href="/dashboard/purchases/new" className="dash-quick-link">
-          <span className="dash-quick-icon">+</span>
+          <span className="dash-quick-icon" aria-hidden="true">↓</span>
           <span>Record a purchase</span>
         </Link>
         <Link href="/dashboard/purchases" className="dash-quick-link">
-          <span className="dash-quick-icon">☰</span>
+          <span className="dash-quick-icon" aria-hidden="true">☰</span>
           <span>View all purchases</span>
         </Link>
         <Link href="/dashboard/customers" className="dash-quick-link">
-          <span className="dash-quick-icon">👤</span>
+          <span className="dash-quick-icon" aria-hidden="true">◆</span>
           <span>Manage customers</span>
         </Link>
         <Link href="/dashboard/sales/new" className="dash-quick-link">
-          <span className="dash-quick-icon">+</span>
+          <span className="dash-quick-icon" aria-hidden="true">↑</span>
           <span>Record a sale</span>
         </Link>
         <Link href="/dashboard/sales" className="dash-quick-link">
-          <span className="dash-quick-icon">☰</span>
+          <span className="dash-quick-icon" aria-hidden="true">☰</span>
           <span>View all sales</span>
         </Link>
         <Link href="/dashboard/buyers" className="dash-quick-link">
-          <span className="dash-quick-icon">👤</span>
+          <span className="dash-quick-icon" aria-hidden="true">◆</span>
           <span>Manage buyers</span>
         </Link>
       </div>
