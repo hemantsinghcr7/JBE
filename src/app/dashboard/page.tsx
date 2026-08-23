@@ -1,6 +1,7 @@
 import { createDb } from "@/lib/db";
 import { createSupabaseServerComponent } from "@/lib/supabase-server";
 import { CATEGORY_ORDER, CATEGORY_COLORS, CATEGORY_SLUGS, groupStockByCategory } from "@/lib/metalCategory";
+import { formatDate } from "@/lib/formatDate";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -86,7 +87,9 @@ export default async function DashboardPage() {
 
         {/* ── Stock position ── */}
         <div className="dash-position-col">
-          <div className="dash-position-col-label">Stock Position — {totalStock.toLocaleString("en-IN")} kg</div>
+          <div className="dash-position-col-label">
+            Stock Position <small>{totalStock.toLocaleString("en-IN")} kg on hand</small>
+          </div>
           {totalStock === 0 ? (
             <p style={{ color: "var(--ink-50)", fontSize: "0.85rem" }}>No stock data yet.</p>
           ) : (
@@ -129,9 +132,9 @@ export default async function DashboardPage() {
               const total = (p.items ?? []).reduce((s, i) => s + (i.amount ?? 0), 0);
               return (
                 <tr key={p.id}>
-                  <td className="dash-mono">{p.purchase_date}</td>
+                  <td className="dash-table-date">{formatDate(p.purchase_date)}</td>
                   <td className="dash-table-name">{p.customer?.name ?? "—"}</td>
-                  <td style={{ textAlign: "right" }} className="dash-mono">₹{fmtRupees(total)}</td>
+                  <td className="dash-table-num">₹{fmtRupees(total)}</td>
                   <td>
                     <span className={`dash-badge dash-badge--${p.status}`}>{p.status}</span>
                   </td>
@@ -165,9 +168,9 @@ export default async function DashboardPage() {
               const total = (s.items ?? []).reduce((sum, i) => sum + (i.amount ?? 0), 0);
               return (
                 <tr key={s.id}>
-                  <td className="dash-mono">{s.sale_date}</td>
+                  <td className="dash-table-date">{formatDate(s.sale_date)}</td>
                   <td className="dash-table-name">{s.buyer?.name ?? "—"}</td>
-                  <td style={{ textAlign: "right" }} className="dash-mono">₹{fmtRupees(total)}</td>
+                  <td className="dash-table-num">₹{fmtRupees(total)}</td>
                   <td>
                     <span className={`dash-badge dash-badge--${s.status}`}>{s.status}</span>
                   </td>

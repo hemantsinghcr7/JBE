@@ -1,5 +1,6 @@
 import { createDb } from "@/lib/db";
 import { createSupabaseServerComponent } from "@/lib/supabase-server";
+import { formatDate } from "@/lib/formatDate";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -100,7 +101,7 @@ export default async function BuyerDetailPage({ params }: { params: Promise<{ id
           <tbody>
             {buyerSales.map((s) => (
               <tr key={s.id}>
-                <td className="dash-mono">{s.sale_date}</td>
+                <td className="dash-table-date">{formatDate(s.sale_date)}</td>
                 <td>
                   <span className={`dash-badge dash-badge--${s.status}`}>{s.status}</span>
                 </td>

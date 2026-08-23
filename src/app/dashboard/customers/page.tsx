@@ -49,9 +49,14 @@ export default async function CustomersPage() {
                 <td>{c.phone ?? "—"}</td>
                 <td>{c.address ?? "—"}</td>
                 <td>
-                  <Link href={`/dashboard/customers/${c.id}`} className="dash-table-link">
-                    View →
-                  </Link>
+                  <span style={{ display: "flex", gap: "0.9rem", justifyContent: "flex-end" }}>
+                    <Link href={`/dashboard/customers/${c.id}/edit`} className="dash-table-link">
+                      Edit
+                    </Link>
+                    <Link href={`/dashboard/customers/${c.id}`} className="dash-table-link">
+                      View →
+                    </Link>
+                  </span>
                 </td>
               </tr>
             ))}

@@ -3,6 +3,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createDb } from "@/lib/db";
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
+import { SearchSelect } from "@/components/dashboard/SearchSelect";
+import { errorMessage } from "@/lib/errorMessage";
 import type { MetalType } from "@/types/database";
 
 interface Props {
@@ -99,7 +101,7 @@ export function NewSaleForm({ buyers }: Props) {
 
       router.push(`/dashboard/sales/${sale.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setError(errorMessage(err));
       setSaving(false);
     }
   }
@@ -107,20 +109,16 @@ export function NewSaleForm({ buyers }: Props) {
   return (
     <div className="dash-form-wrap">
       <div className="dash-form-row">
-        <label className="dash-label">
-          Buyer
-          <select
-            className="dash-input"
+        <div className="dash-label">
+          <span>Buyer</span>
+          <SearchSelect
+            ariaLabel="Buyer"
+            placeholder="Search buyer…"
+            options={buyers.map((b) => ({ value: b.id, label: b.name }))}
             value={buyerId}
-            onChange={(e) => setBuyerId(e.target.value)}
-            required
-          >
-            <option value="">Select buyer…</option>
-            {buyers.map((b) => (
-              <option key={b.id} value={b.id}>{b.name}</option>
-            ))}
-          </select>
-        </label>
+            onChange={setBuyerId}
+          />
+        </div>
 
         <label className="dash-label">
           Date
@@ -146,15 +144,13 @@ export function NewSaleForm({ buyers }: Props) {
 
         {items.map((item, idx) => (
           <div key={idx} className="dash-sale-items-row">
-            <select
-              className="dash-input"
+            <SearchSelect
+              ariaLabel="Metal"
+              placeholder="Search metal…"
+              options={METALS.map((m) => ({ value: m, label: m }))}
               value={item.metal_type}
-              onChange={(e) => updateItem(idx, { metal_type: e.target.value as MetalType })}
-            >
-              {METALS.map((m) => (
-                <option key={m} value={m}>{m}</option>
-              ))}
-            </select>
+              onChange={(v) => updateItem(idx, { metal_type: v as MetalType })}
+            />
 
             <input
               type="number"

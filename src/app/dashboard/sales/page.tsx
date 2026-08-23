@@ -1,5 +1,6 @@
 import { createDb } from "@/lib/db";
 import { createSupabaseServerComponent } from "@/lib/supabase-server";
+import { formatDate } from "@/lib/formatDate";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -45,7 +46,7 @@ export default async function SalesPage() {
           <tbody>
             {data.map((s) => (
               <tr key={s.id}>
-                <td className="dash-mono">{s.sale_date}</td>
+                <td className="dash-table-date">{formatDate(s.sale_date)}</td>
                 <td className="dash-table-name">{s.buyer?.name ?? "—"}</td>
                 <td>
                   <span className={`dash-badge dash-badge--${s.status}`}>

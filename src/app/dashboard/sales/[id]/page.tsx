@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { RecordSalePaymentForm } from "@/components/dashboard/RecordSalePaymentForm";
 import { AdvanceSaleStatusButton } from "@/components/dashboard/AdvanceSaleStatusButton";
 import { SaleComplianceForm } from "@/components/dashboard/SaleComplianceForm";
+import { formatDateLong } from "@/lib/formatDate";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +46,7 @@ export default async function SaleDetailPage({ params }: { params: Promise<{ id:
       <div className="dash-meta-row">
         <div className="dash-meta-item">
           <span className="dash-meta-label">Date</span>
-          <span className="dash-meta-value">{sale.sale_date}</span>
+          <span className="dash-meta-value">{formatDateLong(sale.sale_date)}</span>
         </div>
         <div className="dash-meta-item">
           <span className="dash-meta-label">Phone</span>

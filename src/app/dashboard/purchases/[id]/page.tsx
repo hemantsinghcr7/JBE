@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { RecordPaymentForm } from "@/components/dashboard/RecordPaymentForm";
 import { MarkCompleteButton } from "@/components/dashboard/MarkCompleteButton";
+import { formatDateLong } from "@/lib/formatDate";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +40,7 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
       <div className="dash-meta-row">
         <div className="dash-meta-item">
           <span className="dash-meta-label">Date</span>
-          <span className="dash-meta-value">{purchase.purchase_date}</span>
+          <span className="dash-meta-value">{formatDateLong(purchase.purchase_date)}</span>
         </div>
         <div className="dash-meta-item">
           <span className="dash-meta-label">Phone</span>
@@ -69,7 +70,6 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
               <th style={{ textAlign: "right" }}>Deduction (kg)</th>
               <th style={{ textAlign: "right" }}>Net Wt (kg)</th>
               <th style={{ textAlign: "right" }}>Rate (₹/kg)</th>
-              <th>Timing</th>
               <th style={{ textAlign: "right" }}>Amount (₹)</th>
             </tr>
           </thead>
@@ -82,16 +82,13 @@ export default async function PurchaseDetailPage({ params }: { params: Promise<{
                 <td style={{ textAlign: "right" }} className="dash-mono">{fmt(item.deduction_weight ?? 0)}</td>
                 <td style={{ textAlign: "right" }} className="dash-mono"><strong>{fmt(item.net_weight ?? 0)}</strong></td>
                 <td style={{ textAlign: "right" }} className="dash-mono">{fmt(item.rate)}</td>
-                <td className="dash-mono" style={{ fontSize: "0.75rem", color: "var(--ink-50)" }}>
-                  {item.rate_timing === "before" ? "Before wt." : "After wt."}
-                </td>
                 <td style={{ textAlign: "right" }} className="dash-mono"><strong>₹{fmt(item.amount ?? 0)}</strong></td>
               </tr>
             ))}
           </tbody>
           <tfoot>
             <tr className="dash-table-total-row">
-              <td colSpan={7} style={{ textAlign: "right", fontFamily: "var(--f-mono)", fontSize: "0.75rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-50)", paddingRight: "1rem" }}>
+              <td colSpan={6} style={{ textAlign: "right", fontFamily: "var(--f-mono)", fontSize: "0.75rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-50)", paddingRight: "1rem" }}>
                 Total Payable
               </td>
               <td style={{ textAlign: "right" }} className="dash-mono">

@@ -3,7 +3,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createDb } from "@/lib/db";
 import { createSupabaseBrowser } from "@/lib/supabase-browser";
-import type { MetalType, RateTiming } from "@/types/database";
+import { SearchSelect } from "@/components/dashboard/SearchSelect";
+import { errorMessage } from "@/lib/errorMessage";
+import type { MetalType } from "@/types/database";
 
 interface Props {
   customers: { id: string; name: string }[];
@@ -15,7 +17,6 @@ interface ItemRow {
   sacks_count: string;
   deduction_weight: string;
   rate: string;
-  rate_timing: RateTiming;
 }
 
 const EMPTY_ITEM: ItemRow = {
@@ -24,7 +25,6 @@ const EMPTY_ITEM: ItemRow = {
   sacks_count: "0",
   deduction_weight: "0",
   rate: "",
-  rate_timing: "before",
 };
 
 const METALS: MetalType[] = [
@@ -109,7 +109,10 @@ export function NewPurchaseForm({ customers }: Props) {
           sacks_count: parseInt(item.sacks_count) || 0,
           deduction_weight: parseFloat(item.deduction_weight) || 0,
           rate: parseFloat(item.rate),
-          rate_timing: item.rate_timing,
+          // Not collected in the UI any more, but the column is NOT NULL —
+          // send the default explicitly rather than relying on the live
+          // table actually having a DEFAULT clause.
+          rate_timing: "before" as const,
         }))
       );
 
@@ -117,7 +120,7 @@ export function NewPurchaseForm({ customers }: Props) {
 
       router.push(`/dashboard/purchases/${purchase.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setError(errorMessage(err));
       setSaving(false);
     }
   }
@@ -125,20 +128,16 @@ export function NewPurchaseForm({ customers }: Props) {
   return (
     <div className="dash-form-wrap">
       <div className="dash-form-row">
-        <label className="dash-label">
-          Customer
-          <select
-            className="dash-input"
+        <div className="dash-label">
+          <span>Customer</span>
+          <SearchSelect
+            ariaLabel="Customer"
+            placeholder="Search customer…"
+            options={customers.map((c) => ({ value: c.id, label: c.name }))}
             value={customerId}
-            onChange={(e) => setCustomerId(e.target.value)}
-            required
-          >
-            <option value="">Select customer…</option>
-            {customers.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
-        </label>
+            onChange={setCustomerId}
+          />
+        </div>
 
         <label className="dash-label">
           Date
@@ -161,22 +160,19 @@ export function NewPurchaseForm({ customers }: Props) {
           <span>Deduction (kg)</span>
           <span>Net wt (kg)</span>
           <span>Rate (₹/kg)</span>
-          <span>Rate timing</span>
           <span>Amount (₹)</span>
           <span></span>
         </div>
 
         {items.map((item, idx) => (
           <div key={idx} className="dash-items-row">
-            <select
-              className="dash-input"
+            <SearchSelect
+              ariaLabel="Metal"
+              placeholder="Search metal…"
+              options={METALS.map((m) => ({ value: m, label: m }))}
               value={item.metal_type}
-              onChange={(e) => updateItem(idx, { metal_type: e.target.value as MetalType })}
-            >
-              {METALS.map((m) => (
-                <option key={m} value={m}>{m}</option>
-              ))}
-            </select>
+              onChange={(v) => updateItem(idx, { metal_type: v as MetalType })}
+            />
 
             <input
               type="number"
@@ -218,15 +214,6 @@ export function NewPurchaseForm({ customers }: Props) {
               value={item.rate}
               onChange={(e) => updateItem(idx, { rate: e.target.value })}
             />
-
-            <select
-              className="dash-input"
-              value={item.rate_timing}
-              onChange={(e) => updateItem(idx, { rate_timing: e.target.value as RateTiming })}
-            >
-              <option value="before">Before</option>
-              <option value="after">After</option>
-            </select>
 
             <span className="dash-computed">
               ₹{rowAmount(item).toLocaleString("en-IN", { minimumFractionDigits: 2 })}

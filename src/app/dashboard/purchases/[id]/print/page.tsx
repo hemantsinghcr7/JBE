@@ -101,14 +101,13 @@ function VoucherCopy({
       {/* Items table */}
       <table className="receipt-table">
         <colgroup>
-          <col style={{ width: "21%" }} />
-          <col style={{ width: "12%" }} />
-          <col style={{ width: "8%" }} />
-          <col style={{ width: "12%" }} />
-          <col style={{ width: "12%" }} />
-          <col style={{ width: "11%" }} />
+          <col style={{ width: "26%" }} />
+          <col style={{ width: "13%" }} />
           <col style={{ width: "9%" }} />
-          <col style={{ width: "15%" }} />
+          <col style={{ width: "13%" }} />
+          <col style={{ width: "13%" }} />
+          <col style={{ width: "12%" }} />
+          <col style={{ width: "16%" }} />
         </colgroup>
         <thead>
           <tr>
@@ -118,7 +117,6 @@ function VoucherCopy({
             <th>Ded.</th>
             <th>Net Wt</th>
             <th>Rate</th>
-            <th>Timing</th>
             <th>Amount</th>
           </tr>
         </thead>
@@ -131,16 +129,13 @@ function VoucherCopy({
               <td>{fmt(item.deduction_weight ?? 0)}</td>
               <td style={{ fontWeight: 700 }}>{fmt(item.net_weight ?? 0)}</td>
               <td>{fmtAmt(item.rate)}</td>
-              <td style={{ textAlign: "center" }}>
-                {item.rate_timing === "before" ? "Before" : "After"}
-              </td>
               <td style={{ fontWeight: 700 }}>{fmtAmt(item.amount ?? 0)}</td>
             </tr>
           ))}
         </tbody>
         <tfoot>
           <tr>
-            <td colSpan={7} style={{ textAlign: "right", fontFamily: "var(--f-mono)", fontSize: "7px", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+            <td colSpan={6} style={{ textAlign: "right", fontFamily: "var(--f-mono)", fontSize: "7px", letterSpacing: "0.06em", textTransform: "uppercase" }}>
               Total Payable
             </td>
             <td style={{ fontWeight: 800, fontSize: "10px" }}>₹{fmtAmt(totalAmount)}</td>

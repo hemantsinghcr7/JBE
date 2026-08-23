@@ -54,6 +54,24 @@ export function createDb(client: SupabaseClient) {
         return { error };
       },
 
+      update: async (
+        id: string,
+        row: { name: string; phone?: string | null; address?: string | null }
+      ) => {
+        const { error } = await client.from("customers").update(row as unknown as object).eq("id", id);
+        return { error };
+      },
+
+      // Purchases reference customers with no ON DELETE rule, so the database
+      // will reject this if any purchase exists — which is the behaviour we
+      // want (deleting a customer must never orphan financial records). Call
+      // sites should check purchase count first and explain, rather than
+      // surfacing a raw foreign-key violation.
+      remove: async (id: string) => {
+        const { error } = await client.from("customers").delete().eq("id", id);
+        return { error };
+      },
+
       // Scrap received (kg) this week/month/all-time, plus account totals —
       // powers the customer profile page.
       summary: async (customerId: string): Promise<{ data: CustomerSummary; error: unknown }> => {

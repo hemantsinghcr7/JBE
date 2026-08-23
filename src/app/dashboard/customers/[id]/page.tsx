@@ -1,5 +1,7 @@
 import { createDb } from "@/lib/db";
 import { createSupabaseServerComponent } from "@/lib/supabase-server";
+import { formatDate, formatDateLong } from "@/lib/formatDate";
+import { DeleteCustomerButton } from "@/components/dashboard/DeleteCustomerButton";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -27,9 +29,14 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
       </div>
       <div className="dash-page-header">
         <h1 className="dash-page-title">{customer.name}</h1>
-        <Link href="/dashboard/purchases/new" className="dash-btn">
-          + New Purchase
-        </Link>
+        <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
+          <Link href={`/dashboard/customers/${customer.id}/edit`} className="dash-btn dash-btn--outline">
+            Edit
+          </Link>
+          <Link href="/dashboard/purchases/new" className="dash-btn">
+            + New Purchase
+          </Link>
+        </div>
       </div>
 
       <div className="dash-meta-row">
@@ -43,9 +50,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
         </div>
         <div className="dash-meta-item">
           <span className="dash-meta-label">Customer Since</span>
-          <span className="dash-meta-value">
-            {new Date(customer.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })}
-          </span>
+          <span className="dash-meta-value">{formatDateLong(customer.created_at)}</span>
         </div>
       </div>
 
@@ -98,7 +103,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
           <tbody>
             {customerPurchases.map((p) => (
               <tr key={p.id}>
-                <td className="dash-mono">{p.purchase_date}</td>
+                <td className="dash-table-date">{formatDate(p.purchase_date)}</td>
                 <td>
                   <span className={`dash-badge dash-badge--${p.status}`}>{p.status}</span>
                 </td>
@@ -112,6 +117,14 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
           </tbody>
         </table>
       )}
+
+      <div className="dash-detail-actions">
+        <DeleteCustomerButton
+          customerId={customer.id}
+          customerName={customer.name}
+          purchaseCount={customerPurchases.length}
+        />
+      </div>
     </div>
   );
 }
