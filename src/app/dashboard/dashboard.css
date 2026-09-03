@@ -639,10 +639,6 @@
 }
 .dash-badge--draft      { background: var(--d-warning-soft); color: var(--d-warning); border-color: #F7DFBC; }
 .dash-badge--complete   { background: var(--d-success-soft); color: var(--d-success); border-color: #C6E9DA; }
-.dash-badge--quoted     { background: var(--d-neutral-soft); color: var(--d-neutral); border-color: #DDE2EA; }
-.dash-badge--dispatched { background: var(--d-accent-soft);  color: var(--d-accent);  border-color: #D3E0FF; }
-.dash-badge--delivered  { background: var(--d-warning-soft); color: var(--d-warning); border-color: #F7DFBC; }
-.dash-badge--paid       { background: var(--d-success-soft); color: var(--d-success); border-color: #C6E9DA; }
 
 /* ============================================================
    SECTION HEADINGS
@@ -725,13 +721,7 @@ textarea.dash-input { min-height: 0; }
   gap: 0.6rem;
   align-items: center;
 }
-.dash-sale-items-head, .dash-sale-items-row {
-  display: grid;
-  grid-template-columns: 250px 170px 130px 160px 40px;
-  gap: 0.6rem;
-  align-items: center;
-}
-.dash-items-head, .dash-sale-items-head {
+.dash-items-head {
   font-family: var(--f-body);
   font-size: 0.85rem;
   font-weight: 600;
@@ -942,15 +932,6 @@ textarea.dash-input { min-height: 0; }
   margin-bottom: 0.9rem;
   border-bottom: 1px solid var(--d-border);
 }
-.dash-ledger-primary-pair {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.25rem;
-  padding-bottom: 1.1rem;
-  margin-bottom: 0.5rem;
-  border-bottom: 1px solid var(--d-border);
-}
-@media (max-width: 420px) { .dash-ledger-primary-pair { grid-template-columns: 1fr; } }
 .dash-ledger-label { font-size: 0.78rem; color: var(--d-text-2); }
 .dash-ledger-value {
   font-family: var(--f-display);

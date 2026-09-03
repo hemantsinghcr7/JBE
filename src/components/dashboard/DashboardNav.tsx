@@ -35,13 +35,7 @@ const BUYING: NavItem[] = [
   { label: "Customers", href: "/dashboard/customers", icon: "people" },
 ];
 
-const SELLING: NavItem[] = [
-  { label: "New Sale", href: "/dashboard/sales/new", icon: "add" },
-  { label: "Sales", href: "/dashboard/sales", icon: "list" },
-  { label: "Buyers", href: "/dashboard/buyers", icon: "people" },
-];
-
-const ALL = [...TOP, ...BUYING, ...SELLING];
+const ALL = [...TOP, ...BUYING];
 
 // Longest matching href wins, so /dashboard/purchases/new highlights
 // "New Purchase" rather than also lighting up "Purchases".
@@ -75,8 +69,6 @@ export function DashboardNav() {
       {TOP.map(link)}
       <span className="dash-nav-section">Buying</span>
       {BUYING.map(link)}
-      <span className="dash-nav-section">Selling</span>
-      {SELLING.map(link)}
     </nav>
   );
 }

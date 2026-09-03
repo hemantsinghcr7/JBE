@@ -12,26 +12,22 @@ function fmtRupees(n: number) {
 
 async function getOverviewData() {
   const db = createDb(await createSupabaseServerComponent());
-  const [financials, salesFinancials, stock, customers, recent, recentSales] = await Promise.all([
+  const [financials, stock, customers, recent] = await Promise.all([
     db.purchases.financialSummary(),
-    db.sales.financialSummary(),
     db.stock.byMetal(),
     db.customers.list(),
     db.purchases.recent(5),
-    db.sales.recent(5),
   ]);
   return {
     financials: financials.data,
-    salesFinancials: salesFinancials.data,
     stock: stock.data,
     customerCount: customers.data.length,
     recent: recent.data,
-    recentSales: recentSales.data,
   };
 }
 
 export default async function DashboardPage() {
-  const { financials, salesFinancials, stock, customerCount, recent, recentSales } = await getOverviewData();
+  const { financials, stock, customerCount, recent } = await getOverviewData();
 
   const groups = groupStockByCategory(stock);
   const totalStock = CATEGORY_ORDER.reduce((sum, cat) => sum + groups[cat].total, 0);
@@ -49,35 +45,19 @@ export default async function DashboardPage() {
         {/* ── Cash position ── */}
         <div className="dash-position-col">
           <div className="dash-position-col-label">Cash Position</div>
-          <div className="dash-ledger-primary-pair">
-            <div className="dash-ledger-primary" style={{ border: "none", padding: 0, margin: 0 }}>
-              <span className="dash-ledger-label">Payables — Owed to Customers</span>
-              <span className="dash-ledger-value" style={{ color: financials.outstanding > 0 ? "var(--red)" : "var(--ink)" }}>
-                ₹{fmtRupees(financials.outstanding)}
-              </span>
-            </div>
-            <div className="dash-ledger-primary" style={{ border: "none", padding: 0, margin: 0 }}>
-              <span className="dash-ledger-label">Receivables — Owed by Buyers</span>
-              <span className="dash-ledger-value" style={{ color: salesFinancials.outstanding > 0 ? "var(--blue)" : "var(--ink)" }}>
-                ₹{fmtRupees(salesFinancials.outstanding)}
-              </span>
-            </div>
+          <div className="dash-ledger-primary">
+            <span className="dash-ledger-label">Payables — Owed to Customers</span>
+            <span className="dash-ledger-value" style={{ color: financials.outstanding > 0 ? "var(--red)" : "var(--ink)" }}>
+              ₹{fmtRupees(financials.outstanding)}
+            </span>
           </div>
           <div className="dash-ledger-row">
-            <span>Paid Today (to Customers)</span>
+            <span>Paid Today</span>
             <span>₹{fmtRupees(financials.paidToday)}</span>
-          </div>
-          <div className="dash-ledger-row">
-            <span>Collected Today (from Buyers)</span>
-            <span>₹{fmtRupees(salesFinancials.collectedToday)}</span>
           </div>
           <div className="dash-ledger-row">
             <span>Purchase Value — This Week</span>
             <span>₹{fmtRupees(financials.valueThisWeek)}</span>
-          </div>
-          <div className="dash-ledger-row">
-            <span>Sale Value — This Week</span>
-            <span>₹{fmtRupees(salesFinancials.valueThisWeek)}</span>
           </div>
           <div className="dash-ledger-row">
             <span>Avg. Purchase Size</span>
@@ -88,7 +68,7 @@ export default async function DashboardPage() {
         {/* ── Stock position ── */}
         <div className="dash-position-col">
           <div className="dash-position-col-label">
-            Stock Position <small>{totalStock.toLocaleString("en-IN")} kg on hand</small>
+            Stock Position <small>{totalStock.toLocaleString("en-IN")} kg received</small>
           </div>
           {totalStock === 0 ? (
             <p style={{ color: "var(--ink-50)", fontSize: "0.85rem" }}>No stock data yet.</p>
@@ -148,42 +128,6 @@ export default async function DashboardPage() {
         </table>
       )}
 
-      {/* ── Recent sales ── */}
-      <div className="dash-section-label">Recent Sales</div>
-      {recentSales.length === 0 ? (
-        <p style={{ color: "var(--ink-50)", fontSize: "0.85rem", marginBottom: "1.75rem" }}>No sales recorded yet.</p>
-      ) : (
-        <table className="dash-table" style={{ marginBottom: "1.75rem" }}>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Buyer</th>
-              <th style={{ textAlign: "right" }}>Amount</th>
-              <th>Status</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {recentSales.map((s) => {
-              const total = (s.items ?? []).reduce((sum, i) => sum + (i.amount ?? 0), 0);
-              return (
-                <tr key={s.id}>
-                  <td className="dash-table-date">{formatDate(s.sale_date)}</td>
-                  <td className="dash-table-name">{s.buyer?.name ?? "—"}</td>
-                  <td className="dash-table-num">₹{fmtRupees(total)}</td>
-                  <td>
-                    <span className={`dash-badge dash-badge--${s.status}`}>{s.status}</span>
-                  </td>
-                  <td>
-                    <Link href={`/dashboard/sales/${s.id}`} className="dash-table-link">View →</Link>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      )}
-
       {/* ── Quick actions ── */}
       <div className="dash-section-label">Quick Actions</div>
       <div className="dash-quick-links">
@@ -198,18 +142,6 @@ export default async function DashboardPage() {
         <Link href="/dashboard/customers" className="dash-quick-link">
           <span className="dash-quick-icon" aria-hidden="true">◆</span>
           <span>Manage customers</span>
-        </Link>
-        <Link href="/dashboard/sales/new" className="dash-quick-link">
-          <span className="dash-quick-icon" aria-hidden="true">↑</span>
-          <span>Record a sale</span>
-        </Link>
-        <Link href="/dashboard/sales" className="dash-quick-link">
-          <span className="dash-quick-icon" aria-hidden="true">☰</span>
-          <span>View all sales</span>
-        </Link>
-        <Link href="/dashboard/buyers" className="dash-quick-link">
-          <span className="dash-quick-icon" aria-hidden="true">◆</span>
-          <span>Manage buyers</span>
         </Link>
       </div>
     </div>

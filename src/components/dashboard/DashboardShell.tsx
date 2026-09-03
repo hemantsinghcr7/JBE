@@ -9,8 +9,6 @@ const SEGMENT_LABELS: Record<string, string> = {
   dashboard: "Overview",
   purchases: "Purchases",
   customers: "Customers",
-  sales: "Sales",
-  buyers: "Buyers",
   stock: "Stock",
   new: "New",
   print: "Print",

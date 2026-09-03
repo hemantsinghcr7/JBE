@@ -63,27 +63,16 @@ JbeWebsite/
 │   │       │   ├── page.tsx          ← list all customers
 │   │       │   ├── new/page.tsx      ← add customer form
 │   │       │   └── [id]/page.tsx     ← customer profile: scrap received, account balance, history
-│   │       ├── sales/                ← selling side: scrap out to buyers
-│   │       │   ├── page.tsx          ← list all sales
-│   │       │   ├── new/page.tsx      ← new sale form (quantity + rate agreed by phone)
-│   │       │   └── [id]/
-│   │       │       ├── page.tsx      ← sale detail: items, status progression, compliance refs, payments
-│   │       │       └── print/page.tsx← printable sale invoice / delivery challan
-│   │       ├── buyers/                ← businesses JBE sells to (MH/GJ)
-│   │       │   ├── page.tsx          ← list all buyers
-│   │       │   ├── new/page.tsx      ← add buyer form
-│   │       │   └── [id]/page.tsx     ← buyer profile: scrap sold, receivable balance, history
 │   │       ├── stock/
 │   │       │   ├── page.tsx          ← stock index: 3 categories (Aluminium/Copper/Brass) + Other
 │   │       │   └── [category]/page.tsx ← material-level breakdown within one category
-│   │       └── receipt-print.css     ← shared A4 print styles (purchase voucher + sale invoice)
+│   │       └── receipt-print.css     ← A4 print styles for the purchase voucher
 │   ├── components/
 │   │   ├── layout/          ← TopStrip, Navbar, MobileDrawer, Footer, ScrollExtras
 │   │   ├── ui/              ← LogoTile, Kicker, Btn, Reveal (reusable primitives)
 │   │   ├── sections/        ← Hero, Ticker, Stats, About, Materials, Process, ExportBand, Contact
-│   │   └── dashboard/       ← LoginForm, NewPurchaseForm, NewCustomerForm, NewSaleForm, NewBuyerForm,
-│   │                           RecordPaymentForm, RecordSalePaymentForm, MarkCompleteButton,
-│   │                           AdvanceSaleStatusButton, SaleComplianceForm, PrintButton
+│   │   └── dashboard/       ← LoginForm, NewPurchaseForm, NewCustomerForm, RecordPaymentForm,
+│   │                           MarkCompleteButton, PrintButton
 │   ├── data/
 │   │   └── content.ts       ← ALL editable marketing content
 │   ├── hooks/
@@ -179,14 +168,6 @@ Cards:      1px solid border, no radius
 | `purchase_items` | Metal line items per purchase: metal_type, gross/deduction/net weight, rate, amount |
 | `payments` | Payments to customers: amount, type (cash/credit), date |
 
-### Tables — selling side (scrap out)
-| Table | Purpose |
-|-------|---------|
-| `buyers` | Businesses JBE sells to (mostly Maharashtra/Gujarat): name, phone, address, state, GSTIN |
-| `sales` | One sale per buyer dispatch: date, status (quoted/dispatched/delivered/paid), vehicle number, driver, invoice number, E-way bill number, notes |
-| `sale_items` | Metal line items per sale: metal_type, quantity, rate, amount — agreed by phone, not weighed on a multi-step basis like purchases |
-| `sale_payments` | Payments from buyers: amount, type (cash/credit), date — separate table from `payments` so buy-side and sell-side cash flows never share a foreign key |
-
 ### Purchase status flow
 ```
 draft → complete
@@ -194,20 +175,8 @@ draft → complete
 - **draft** — purchase recorded, scrap being processed or awaiting customer sign-off
 - **complete** — customer reviewed paperwork, agreed to deductions, ready to print
 
-### Sale status flow
-```
-quoted → dispatched → delivered → paid
-```
-- **quoted** — rate and quantity agreed by phone, truck not yet sent
-- **dispatched** — truck has left (requires vehicle number); this is when stock is deducted
-- **delivered** — buyer has received the load
-- **paid** — settled
-
 ### Stock on hand
-`stock.byMetal()` in `db.ts` nets total purchased weight minus sales in `dispatched`/`delivered`/`paid` status (a `quoted` sale hasn't shipped, so it doesn't reduce stock). Grouped into 3 categories (Aluminium/Copper/Brass + Other) via `src/lib/metalCategory.ts` — update that file's `EXACT_MAP` if the material list in `MetalType` changes.
-
-### Compliance (E-way Bill, GST invoice, TCS)
-`sales.invoice_number` and `sales.eway_bill_number` are **reference fields only** — this app does not generate or file either. Generate the GST invoice and E-way Bill via your accounting tool / the government e-way bill portal (mandatory above ₹50,000 per consignment, which every sale here will exceed), then record the numbers on the sale so the dispatch has a paper trail. Scrap sales also attract 1% TCS under Income Tax Act Sec 206C(1) unless the buyer provides Form 27C — confirm current rates/thresholds with a CA before relying on anything in this codebase for actual tax filings; this is general regulatory awareness, not tax advice baked into the app.
+`stock.byMetal()` in `db.ts` totals purchased net weight. It is inbound stock only — the sale side is not in the app right now, so the figure never goes down. Grouped into 3 categories (Aluminium/Copper/Brass + Other) via `src/lib/metalCategory.ts` — update that file's `EXACT_MAP` if the material list in `MetalType` changes.
 
 ### DB access pattern
 ```
@@ -288,7 +257,7 @@ See `ROADMAP.md` for full detail.
 |-------|---------|--------|
 | 1 | Marketing website | ✅ Done |
 | 2 | Operations dashboard (auth, purchases, receipts) | ✅ Done |
-| 3 | Stock tracking (buyers, sales, dispatch, running stock) | ✅ Done |
+| 3 | Stock tracking (buyers, sales, dispatch, running stock) | ⏸️ Removed from the app — see §11 |
 | 4 | Scrap rate estimator | 🔲 Planned |
 | 5 | Export portal | 🔲 Future |
 
@@ -303,7 +272,24 @@ See `ROADMAP.md` for full detail.
 - Multi-language (Hindi)
 - Export enquiry dedicated page
 - Customer-facing portal
-- Automatic E-way Bill / GST e-invoice generation via government API — `sales.invoice_number`/`eway_bill_number` are manual reference fields only (see §5); real government portal integration needs a GSP account and is a distinct, larger effort
+- Anything on the sale side — it was deliberately removed (see §11); do not re-add sales, buyers, dispatch, or E-way Bill / GST invoice fields until asked
+
+---
+
+## 11. Sale Side — Removed, Not Abandoned
+
+The selling half of the dashboard (buyers, sales, dispatch, sale payments,
+sale invoice print) was built in Phase 3 and then **removed from the codebase**
+so the purchase side could be finalised and put in front of the family without
+half-finished screens in production.
+
+- Removed: `dashboard/sales/*`, `dashboard/buyers/*`, the five sale-side
+  components, the `buyers`/`sales`/`saleItems`/`salePayments` blocks in `db.ts`,
+  and the matching types.
+- **The Supabase tables were not dropped.** `buyers`, `sales`, `sale_items`, and
+  `sale_payments` still exist in the database, unreferenced.
+- To bring it back, recover the files from git history (the commit that removed
+  them) rather than rewriting — the working Phase 3 implementation is there.
 
 ---
 

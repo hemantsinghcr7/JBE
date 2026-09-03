@@ -116,4 +116,7 @@ Update this file whenever a phase is completed or plans change.
 
 ---
 
-*Last updated: July 2026*
+*Last updated: September 2026*
+
+> **Note:** the sale side (buyers, sales, dispatch) was built and then removed
+> from the app so the purchase side can be finalised first. See CLAUDE.md §11.
